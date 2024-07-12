@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [ labeled ]
+
+# Setting the shell option, it will run 'bash --noprofile --norc -eo pipefail {0}'
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-docker:
+    name: Build and push Docker image to GitHub Container Registry
+    if: ${{ github.ref == 'refs/heads/main' }} || ${{ github.event.label.name == 'nix' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+      - uses: cachix/install-nix-action@v25
+      - uses: cachix/cachix-action@v14
+        with:
+          name: moonlit-binge
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          extraPullNames: nix-community
+      - name: "Build Docker image"
+        run: nix build .#dockerImage
+      - name: "Load and tag image"
+        run: |
+          docker load --input ./result
+          export DOCKER_ID=$(docker images moonlit_binge --format {{.ID}})
+          export DOCKER_TAG=$(docker images moonlit_binge --format {{.Tag}})
+          docker tag $DOCKER_ID ghcr.io/alyti/moonlit_binge:$DOCKER_TAG
+          docker tag $DOCKER_ID ghcr.io/alyti/moonlit_binge:latest
+      - name: "Push Docker image to GitHub Container Registry"
+        run: docker push --all-tags ghcr.io/alyti/moonlit_binge

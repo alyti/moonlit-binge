@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+    {% if action == "show" %}
+    {% include "player_connections/show.html" %}
+    {% elif action == "create" %}
+    {% include "player_connections/create.html" %}
+    {% elif action == "transcode" %}
+    {% include "player_connections/transcode.html" %}
+    {% else %}
+    Unknown action??? (Shouldn't happen if you see this something is wrong)
+    {% endif %}
+{% endblock content %}

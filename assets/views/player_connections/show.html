@@ -1,0 +1,76 @@
+<div hx-boost="true" hx-push-url="true" id="library-list"
+    x-data="{ selected_content: [], get has_selected_content() { return this.selected_content.length > 0; } }"
+    class="flex flex-col-reverse items-center justify-center w-screen h-screen text-gray-200 bg-gray-800 sm:flex-row">
+    {# <form> #}
+        <div class="flex flex-col flex-grow sm:h-full h-0 w-full overflow-auto">
+            <!-- 		<div class="flex flex-shrink-0 h-80 p-10 bg-white bg-cover bg-center"
+                style="background-image: url('https://images.unsplash.com/photo-1606787503066-794bb59c64bc?ixid=MXwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHw%3D&ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');"></div> -->
+            <h2 class="text-2xl font-semibold mt-10 sm:px-10 px-6">
+                {% if parent %}
+                {% if parent.parent_id %}
+                <span class="material-symbols-arrow-back-ios" hx-get="/p/{{ connection.id }}/{{ parent.parent_id }}"
+                    hx-trigger="click" hx-target="#library-list" hx-swap="outerHTML"></span>
+                {% else %}
+                <span class="material-symbols-arrow-back-ios" hx-get="/p/{{ connection.id }}" hx-trigger="click"
+                    hx-target="#library-list" hx-swap="outerHTML"></span>
+                {% endif %}
+                {{ parent.type ~ ", " ~ parent.kind.type ~ ": " ~ parent.name }}
+                {% else %}
+                Root libraries in {{ connection.media_provider_id ~ " (" ~ connection.id ~ ")" }}
+                {% endif %}
+            </h2>
+            <div
+                class="grid w-full sm:gap-10 gap-6 mt-4 2xl:grid-cols-5 xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1 sm:px-10 px-6">
+                {# <a class="h-64 col-span-full transition bg-gray-900 rounded shadow-lg hover:shadow-xl" href="#"></a>
+                #}
+                {% for item in items %}
+                {% if item.kind.type == "Season" %}
+                {% set height = "h-96" %}
+                {% set bg_height = "h-80" %}
+                {% else %}
+                {% set height = "h-60" %}
+                {% set bg_height = "h-40" %}
+                {% endif %}
+                {% if item.type == "Content" %}
+                <input class="hidden" type="checkbox" name="content" id="content_{{ item.id }}"
+                    value="{{ item.id }}" x-model="selected_content">
+                <label for="content_{{ item.id }}">
+                    {% endif %}
+                    <div class="transition bg-gray-900 rounded shadow-lg hover:shadow-xl overflow-auto {{ height }}" {%
+                        if item.type=="Library" %} hx-get="/p/{{ connection.id }}/{{ item.id }}" hx-trigger="click"
+                        hx-target="#library-list" hx-swap="outerHTML" {% endif %}>
+                        <div class="m-3">
+                            <div class="rounded-t-lg p-2 bg-no-repeat bg-top {{ bg_height }}"
+                                style="background-image: url('{{ provider.url }}{{ item.icon_url }}')">
+                            </div>
+                            <h2 class="text-lg mb-2 overflow-hide">{{ item.name }}
+                                <span
+                                    class="text-sm text-teal-800 font-mono bg-teal-100 inline rounded-full px-2 align-top float-right animate-pulse">{{
+                                    item.type }}</span>
+                            </h2>
+                            <p
+                                class="font-light font-mono text-sm text-gray-700 hover:text-white-900 transition-all duration-200">
+                                {{ item.description }}</p>
+                        </div>
+                    </div>
+                    {% if item.type == "Content" %}
+                </label>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <div class="fixed bottom-4 right-4" x-show="has_selected_content" x-transition
+            hx-get="/p/{{ connection.id }}/transcode" hx-include="input[type='checkbox']:checked">
+            <button
+                class="bg-blue-500 hover:bg-blue-600 text-white text-2xl font-bold py-2 px-4 rounded-full shadow-lg w-24 h-24">
+                <i class="arcticons-videotranscoder w-12 h-12 text-white"></i>
+            </button>
+        </div>
+    {# </form> #}
+    <style>
+        input[type="checkbox"]:checked+label {
+            -webkit-animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</div>

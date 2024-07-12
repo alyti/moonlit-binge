@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block content %}
+    {% if auth.logged_in %}
+        <p>
+            {{ auth | json_encode }}
+        </p>
+    {% endif %}
+    {% if action == "login" %}
+        {% include "auth/login.html" %}
+    {% elif action == "register" %}
+        {% include "auth/register.html" %}
+    {% elif action == "forgot" %}
+        {% include "auth/forgot.html" %}
+    {% elif action == "reset" %}
+        {% include "auth/reset.html" %}
+    {% else %}
+        Unknown action??? (Shouldn't happen if you see this something is wrong)
+    {% endif %}
+{% endblock content %}

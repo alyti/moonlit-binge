@@ -1,0 +1,27 @@
+[package]
+name = "players"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "players"
+path = "src/lib.rs"
+
+[dependencies]
+progenitor = "0.7.0"
+reqwest = { version = "0.12.5", features = ["json", "stream", "rustls-tls", "rustls-tls-native-roots", "charset", "http2", "macos-system-configuration"], default-features = false}
+uuid = { version = "1.6.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+eyre = "0.6.12"
+testcontainers = { version = "0.19.0", optional = true } 
+m3u8-rs = "6.0.0"
+tracing = "0.1.40"
+
+[features]
+containers = ["testcontainers"]
+
+[dev-dependencies]
+tokio = { version = "1.38.0", features = ["full"] }

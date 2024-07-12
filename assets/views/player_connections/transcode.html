@@ -1,0 +1,99 @@
+<div class="flex flex-col w-screen min-h-screen p-4 text-gray-700">
+    <form>
+    <table class="w-full max-w-screen-lg">
+        <thead>
+            <tr>
+                <th scope="col" class="text-lg font-medium text-left text-blue-500">
+                    Content Name
+                </th>
+                <th scope="col" class="py-3 text-sm font-medium text-left text-gray-500">
+                    Preferred Audio
+                </th>
+                <th scope="col" class="py-3 text-sm font-medium text-left text-gray-500">
+                    Preferred Subtitles
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td class="border border-white">
+                    <div class="flex items-center h-12 bg-gray-200 overflow-hidden">
+                        <div class="w-2 h-12 overflow-hidden transition-all duration-200 hover:w-10">
+                            <div class="flex items-center justify-center w-10 h-12 bg-blue-500">
+                                <input class="border-white" type="checkbox">
+                            </div>
+                        </div>
+                        <input type="hidden" name="content" value="{{ item.id }}" />
+                        <span class="ml-4 w-1/3 truncate">{{ item.name }}</span>
+                    </div>
+                </td class="border border-white">
+                <td class="border border-white">
+                    <div class="flex items-center justify-center h-12 bg-gray-200">
+                        <select name="preferred_audio" required=""
+                            class="block border w-1/3 px-4 py-3 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option selected="" value="-1">Default audio stream</option>
+                            {% for value in item.media_streams %}
+                            {% if value.type == "Audio" %}
+                            <option value="{{value.index}}">
+                                {% if value.name %}
+                                {{ value.name ~ " | " }}
+                                {% endif %}
+                                {% if value.language %}
+                                {{ value.language ~ " | " }}
+                                {% endif %}
+                                {{ " " ~ value.codec ~ "" }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </td class="border border-white">
+                <td class="border border-white">
+                    <div class="flex items-center justify-center h-12 px-4 bg-gray-200">
+                        <select name="preferred_subtitle" required=""
+                            class="block border w-1/3 px-4 py-3 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option selected="" value="-1">Default subtitle stream</option>
+                            {% for value in item.media_streams %}
+                            {% if value.type == "Subtitle" %}
+                            <option value="{{value.index}}">
+                                {% if value.name %}
+                                {{ value.name ~ " | " }}
+                                {% endif %}
+                                {% if value.language %}
+                                {{ value.language ~ " | " }}
+                                {% endif %}
+                                {{ " " ~ value.codec ~ "" }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+
+                        </select>
+                    </div>
+                </td class="border border-white">
+            </tr>
+            {% endfor %}
+            <tr>
+                <td class="border border-white text-right text-lg">
+                    Transcoding profile:
+                </td class="border border-white">
+                <td class="border border-white">
+                    <div class="flex items-center justify-center h-12 bg-gray-200">
+                        <select name="profile"
+                            class="block border w-auto px-4 py-3 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500">
+                            <option selected="" value="">Transcoding Profile</option>
+                            
+                        </select>
+                    </div>
+                </td class="border border-white">
+
+                <td class="border border-white">
+                    <div class="flex items-center justify-center h-12 bg-gray-200">
+                        <button hx-post="/p/{{ connection.id }}/transcode">A</button>
+                    </div>
+                </td class="border border-white">
+            </tr>
+        </tbody>
+    </table>
+</form>
+</div>

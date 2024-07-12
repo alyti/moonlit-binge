@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+{% block content %}
+    {% if action == "home" %}
+        {% include "dashboard/home.html" %}
+    {% else %}
+    Unknown action??? (Shouldn't happen if you see this something is wrong)
+    {% endif %}
+{% endblock content %}
