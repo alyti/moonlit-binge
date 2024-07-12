@@ -57,7 +57,7 @@ async fn register(
         .set_email_verification_sent(&ctx.db)
         .await?;
 
-    AuthMailer::send_welcome(&ctx, &user).await?;
+    // AuthMailer::send_welcome(&ctx, &user).await?;
 
     let jwt_secret = ctx.config.get_jwt_config()?;
 

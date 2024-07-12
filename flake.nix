@@ -211,7 +211,7 @@
 
                 env = {
                   DATABASE_URL = "postgres://${pkg_name}:${pkg_name}@127.0.0.1:5433/${pkg_name}";
-                  REDIS_URL = "redis://redis:6380";
+                  REDIS_URL = "redis://127.0.0.1:6380";
                 };
               }
             ];
