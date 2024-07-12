@@ -1,5 +1,5 @@
 {% if setup.type == "qc_poll" %}
-    <div hx-post="/player_connections/setup"
+    <div hx-post="/p/setup"
     hx-trigger="load delay:5s"
     hx-swap="outerHTML">
         <input type="hidden" name="setup" value="{{ setup | json_encode }}" />
