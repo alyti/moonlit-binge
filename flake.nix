@@ -73,7 +73,15 @@
             pname = pkg_name;
             src = ./.;
             cargoLock.lockFile = ./Cargo.lock;
-            # doCheck = false; # Tests can't run inside sandbox as they need postgres and redis services...
+
+            nativeBuildInputs = with pkgs; [
+              pkg-config
+            ];
+            buildInputs = with pkgs; [
+              openssl
+            ];
+
+            doCheck = false; # Tests can't run inside sandbox as they need postgres and redis services...
           };
 
           # Converts self.lastModifiedDate to ISO-8601 for the layered image, it's cursed...
