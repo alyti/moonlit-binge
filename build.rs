@@ -4,7 +4,10 @@ use encre_css::{
 };
 use serde::Deserialize;
 use std::{
-    fs, io::{BufReader, Read, Seek, SeekFrom}, path::{Path, PathBuf}, process::exit
+    fs,
+    io::{BufReader, Read, Seek, SeekFrom},
+    path::{Path, PathBuf},
+    process::exit,
 };
 use wax::Glob;
 
@@ -150,5 +153,9 @@ fn main() {
         exit(0)
     }
     println!("cargo:rerun-if-changed=assets/views");
-    build_single("encre.toml", Some("assets/views/**/*.html"), Some("assets/static/css/bundle.css".to_string()));
+    build_single(
+        "encre.toml",
+        Some("assets/views/**/*.html"),
+        Some("assets/static/css/bundle.css".to_string()),
+    );
 }

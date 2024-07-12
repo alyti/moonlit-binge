@@ -1,5 +1,5 @@
-use moonlit_binge::app::App;
 use loco_rs::testing;
+use moonlit_binge::app::App;
 use serial_test::serial;
 
 macro_rules! configure_insta {

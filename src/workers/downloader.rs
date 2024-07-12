@@ -113,8 +113,9 @@ impl worker::Worker<DownloadWorkerArgs> for DownloadWorker {
                 // }
                 let fetches =
                     futures_util::stream::iter(paths.into_iter().map(move |(uri, filename)| {
-                        let base_path = std::path::Path::new(&format!("single/{}", &args.connection_id))
-                            .join(&args.content.id);
+                        let base_path =
+                            std::path::Path::new(&format!("single/{}", &args.connection_id))
+                                .join(&args.content.id);
                         self.download_file(uri, filename, base_path)
                     }))
                     .buffer_unordered(CONCURRENT_DOWNLOADS)

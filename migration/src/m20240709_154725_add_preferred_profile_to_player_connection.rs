@@ -3,11 +3,10 @@ use sea_orm_migration::{prelude::*, schema::*};
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
-
 #[derive(DeriveIden)]
 enum PlayerConnections {
     Table,
-    PreferredProfile,    
+    PreferredProfile,
 }
 
 #[async_trait::async_trait]
@@ -34,4 +33,3 @@ impl MigrationTrait for Migration {
             .await
     }
 }
-

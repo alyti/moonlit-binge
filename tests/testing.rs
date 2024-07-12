@@ -1,3 +1,4 @@
+use async_once_cell::OnceCell;
 use axum_test::{TestServer, TestServerConfig};
 use loco_rs::{
     app::{AppContext, Hooks},
@@ -5,13 +6,13 @@ use loco_rs::{
     environment::Environment,
     Result,
 };
-use players::{jellyfin::Jellyfin, testcontainers::{Jellyfin as JellyfinContainer, JELLYFIN_HTTP_PORT}};
-use serde_json::json;
-use testcontainers_modules::{
-    postgres::Postgres, redis::Redis,
+use players::{
+    jellyfin::Jellyfin,
+    testcontainers::{Jellyfin as JellyfinContainer, JELLYFIN_HTTP_PORT},
 };
+use serde_json::json;
 use testcontainers::{runners::AsyncRunner, ContainerAsync};
-use async_once_cell::OnceCell;
+use testcontainers_modules::{postgres::Postgres, redis::Redis};
 use uuid::Uuid;
 
 static ONCE_JELLYFIN: OnceCell<ContainerAsync<JellyfinContainer>> = OnceCell::new();
@@ -28,7 +29,11 @@ async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
         false,
     )
     .unwrap();
-    tokio::fs::write(format!("config/.suffering-{}.yaml", name.to_string()), result).await?;
+    tokio::fs::write(
+        format!("config/.suffering-{}.yaml", name.to_string()),
+        result,
+    )
+    .await?;
     Ok(name)
 }
 
@@ -54,20 +59,28 @@ where
         let redis = Redis::default().start().await.unwrap();
         (pg, redis)
     };
-    let jellyfin = ONCE_JELLYFIN.get_or_init(async {
-        let container = JellyfinContainer::default()
-            .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
-            .start()
-            .await
-            .unwrap();
-        let host = container.get_host().await.unwrap();
-        let host_port = container.get_host_port_ipv4(JELLYFIN_HTTP_PORT).await.unwrap();
-        let url = format!("http://{host}:{host_port}");
-        let client = Jellyfin::new(&url, &None);
-        client.complete_startup("root", Some("/media")).await.unwrap();
-        container
-    }).await;
-    
+    let jellyfin = ONCE_JELLYFIN
+        .get_or_init(async {
+            let container = JellyfinContainer::default()
+                .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
+                .start()
+                .await
+                .unwrap();
+            let host = container.get_host().await.unwrap();
+            let host_port = container
+                .get_host_port_ipv4(JELLYFIN_HTTP_PORT)
+                .await
+                .unwrap();
+            let url = format!("http://{host}:{host_port}");
+            let client = Jellyfin::new(&url, &None);
+            client
+                .complete_startup("root", Some("/media"))
+                .await
+                .unwrap();
+            container
+        })
+        .await;
+
     // tokio::task::block_in_place(move || handle.block_on(ONCE_JELLYFIN.get().unwrap().remove()));
 
     // Sike we sure have to, BECAUSE THANKS LOCO
@@ -76,7 +89,7 @@ where
             "postgres://postgres:postgres@{}:{}/postgres",
             pg.get_host().await.unwrap(),
             pg.get_host_port_ipv4(5432).await.unwrap()
-        ), 
+        ),
         "redis_url": format!(
             "redis://{}:{}",
             redis.get_host().await.unwrap(),
@@ -91,7 +104,12 @@ where
     // Like it didn't have to be like this, but I guess they just couldn't move past Rails way of thinking...
 
     // Use our new throwaway env to do neferious things
-    let boot = H::boot(boot::StartMode::ServerOnly, &Environment::Any(format!(".suffering-{}", env.to_string()))).await.unwrap();
+    let boot = H::boot(
+        boot::StartMode::ServerOnly,
+        &Environment::Any(format!(".suffering-{}", env.to_string())),
+    )
+    .await
+    .unwrap();
 
     // Actually run test
     callback(boot).await;

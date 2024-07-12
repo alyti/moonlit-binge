@@ -2,8 +2,8 @@
 #![allow(clippy::unnecessary_struct_initialization)]
 #![allow(clippy::unused_async)]
 use axum::{body::Bytes, debug_handler, Extension};
-use axum_htmx::HxRequest;
 use axum_extra::extract::{Form, Query};
+use axum_htmx::HxRequest;
 use futures_util::StreamExt;
 use loco_rs::prelude::*;
 use players::types::{Item, Library, MediaStream};
@@ -11,7 +11,10 @@ use sea_orm::{sea_query::Order, QueryOrder};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    initializers::{media_provider::{ConnectedMediaProvider, MediaProviders}, view_engine::BetterTeraView},
+    initializers::{
+        media_provider::{ConnectedMediaProvider, MediaProviders},
+        view_engine::BetterTeraView,
+    },
     models::_entities::{
         player_connections::{ActiveModel, Column, Entity, Model},
         users,
@@ -44,7 +47,12 @@ pub async fn new(
     Extension(media_providers): Extension<Box<MediaProviders>>,
     HxRequest(boosted): HxRequest,
 ) -> Result<Response> {
-    views::player_connections::base_view(&v, boosted, "create", &serde_json::json!({"providers": &media_providers}))
+    views::player_connections::base_view(
+        &v,
+        boosted,
+        "create",
+        &serde_json::json!({"providers": &media_providers}),
+    )
 }
 
 #[debug_handler]
@@ -75,9 +83,14 @@ pub async fn add(
 ) -> Result<Response> {
     let provider = media_providers
         .get(&params.media_provider_id)
-        .ok_or_else(|| Error::NotFound)?.clone();
+        .ok_or_else(|| Error::NotFound)?
+        .clone();
     let identity: serde_json::Value = serde_json::from_str(&params.identity)?;
-    if ConnectedMediaProvider::from_provider_and_connection(provider, identity.clone()).test(&ctx).await.is_err() {
+    if ConnectedMediaProvider::from_provider_and_connection(provider, identity.clone())
+        .test(&ctx)
+        .await
+        .is_err()
+    {
         return Err(Error::BadRequest("Invalid identity".to_string()));
     }
     let item = ActiveModel {
@@ -101,10 +114,13 @@ pub async fn show(
 ) -> Result<Response> {
     let connection = load_item(&ctx, id).await?;
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
-    let items = provider
-        .items(&ctx, None)
-        .await?;
-    views::player_connections::base_view(&v, boosted, "show", &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items}))
+    let items = provider.items(&ctx, None).await?;
+    views::player_connections::base_view(
+        &v,
+        boosted,
+        "show",
+        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items}),
+    )
 }
 
 #[debug_handler]
@@ -117,16 +133,16 @@ pub async fn show_library(
     let connection = load_item(&ctx, id).await?;
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
 
-    let parent = provider
-        .item(&ctx, &library)
-        .await?;
+    let parent = provider.item(&ctx, &library).await?;
     let items = provider
-        .items(
-            &ctx,
-            Some(Library::from_path(&library)),
-        )
+        .items(&ctx, Some(Library::from_path(&library)))
         .await?;
-    views::player_connections::base_view(&v, boosted, "show", &serde_json::json!({"provider": &provider.provider, "connection": &connection, "parent": parent, "items": items}))
+    views::player_connections::base_view(
+        &v,
+        boosted,
+        "show",
+        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "parent": parent, "items": items}),
+    )
 }
 
 #[derive(Deserialize)]
@@ -140,29 +156,31 @@ pub async fn transcode(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     State(ctx): State<AppContext>,
-    Query(data): Query<TranscodeInitParams>
+    Query(data): Query<TranscodeInitParams>,
 ) -> Result<Response> {
     let connection = load_item(&ctx, connection_id).await?;
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
     let mut items = vec![];
     for content_id in data.content_ids {
-        let item = provider
-            .item(&ctx, &content_id)
-            .await?;
+        let item = provider.item(&ctx, &content_id).await?;
         items.push(item);
     }
 
-    views::player_connections::base_view(&v, boosted, "transcode", &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items}))
+    views::player_connections::base_view(
+        &v,
+        boosted,
+        "transcode",
+        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items}),
+    )
 }
-
 
 #[derive(Deserialize, Debug)]
 pub struct TranscodeStartParams {
-    #[serde(rename="content")]
+    #[serde(rename = "content")]
     contents: Vec<String>,
-    #[serde(rename="preferred_audio")]
+    #[serde(rename = "preferred_audio")]
     preferred_audio_streams: Vec<i32>,
-    #[serde(rename="preferred_subtitle")]
+    #[serde(rename = "preferred_subtitle")]
     preferred_subtitle_streams: Vec<i32>,
     profile: Option<String>,
 }
@@ -172,15 +190,13 @@ pub async fn transcode_start(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     State(ctx): State<AppContext>,
-    Form(data): Form<TranscodeStartParams>
+    Form(data): Form<TranscodeStartParams>,
 ) -> Result<Response> {
     let connection = load_item(&ctx, connection_id).await?;
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
     let mut work = vec![];
     for (i, content) in data.contents.iter().enumerate() {
-        let item = provider
-            .item(&ctx, &content)
-            .await?;
+        let item = provider.item(&ctx, &content).await?;
 
         match item {
             Item::Content(content) => {
@@ -189,16 +205,18 @@ pub async fn transcode_start(
                 let preferred_subtitle_stream = data.preferred_subtitle_streams[i];
                 for stream in &content.media_streams {
                     match stream {
-                        MediaStream::Audio{ index, .. } if index == &preferred_audio_stream  => {
+                        MediaStream::Audio { index, .. } if index == &preferred_audio_stream => {
                             streams.push(stream.clone());
                         }
-                        MediaStream::Subtitle{ index, ..} if index == &preferred_subtitle_stream => {
+                        MediaStream::Subtitle { index, .. }
+                            if index == &preferred_subtitle_stream =>
+                        {
                             streams.push(stream.clone());
                         }
                         _ => {}
                     }
                 }
-                work.push(DownloadWorkerArgs{
+                work.push(DownloadWorkerArgs {
                     user_id: connection.user_id,
                     connection_id: connection.id,
                     profile: data.profile.clone(),
@@ -229,9 +247,7 @@ pub async fn content_transcode(
     let connection = load_item(&ctx, provider_id).await?;
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
 
-    let item = provider
-        .item(&ctx, &content_id)
-        .await?;
+    let item = provider.item(&ctx, &content_id).await?;
     match item {
         Item::Content(content) => {
             DownloadWorker::perform_later(

@@ -1,14 +1,17 @@
 use axum::{debug_handler, http::Uri};
-use axum_htmx::{HxRequest, HxRedirect};
+use axum_htmx::{HxRedirect, HxRequest};
 use cookie::{Cookie, CookieJar};
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    initializers::view_engine::BetterTeraView, mailers::auth::AuthMailer, models::{
+    initializers::view_engine::BetterTeraView,
+    mailers::auth::AuthMailer,
+    models::{
         _entities::users,
         users::{LoginParams, RegisterParams},
-    }, views::{self, auth::LoginResponse}
+    },
+    views::{self, auth::LoginResponse},
 };
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VerifyParams {
@@ -65,7 +68,12 @@ async fn register(
     let mut cookie = Cookie::new("moonlit_binge_jwt", token.clone());
     cookie.set_path("/");
 
-    Ok((HxRedirect(Uri::from_static("/")), jar.add(cookie), format::json(LoginResponse::new(&user, &token))).into_response())
+    Ok((
+        HxRedirect(Uri::from_static("/")),
+        jar.add(cookie),
+        format::json(LoginResponse::new(&user, &token)),
+    )
+        .into_response())
 }
 
 /// Verify register user. if the user not verified his email, he can't login to
@@ -133,9 +141,9 @@ async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -
 /// Creates a user login and returns a token
 #[debug_handler]
 async fn login(
-    State(ctx): State<AppContext>, 
+    State(ctx): State<AppContext>,
     jar: CookieJar,
-    Json(params): Json<LoginParams>, 
+    Json(params): Json<LoginParams>,
 ) -> Result<impl IntoResponse> {
     let user = users::Model::find_by_email(&ctx.db, &params.email).await?;
 
@@ -154,24 +162,33 @@ async fn login(
     let mut cookie = Cookie::new("moonlit_binge_jwt", token.clone());
     cookie.set_path("/");
 
-    Ok((HxRedirect(Uri::from_static("/")), jar.add(cookie), format::json(LoginResponse::new(&user, &token))))
+    Ok((
+        HxRedirect(Uri::from_static("/")),
+        jar.add(cookie),
+        format::json(LoginResponse::new(&user, &token)),
+    ))
 }
 
-pub async fn render_auth_login(ViewEngine(v): ViewEngine<BetterTeraView>, HxRequest(boosted): HxRequest) -> Result<Response> {
+pub async fn render_auth_login(
+    ViewEngine(v): ViewEngine<BetterTeraView>,
+    HxRequest(boosted): HxRequest,
+) -> Result<Response> {
     if boosted {
         views::auth::partial_login(&v)
     } else {
         views::auth::base_view(&v, "login")
     }
 }
-pub async fn render_auth_register(ViewEngine(v): ViewEngine<BetterTeraView>, HxRequest(boosted): HxRequest) -> Result<Response> {
+pub async fn render_auth_register(
+    ViewEngine(v): ViewEngine<BetterTeraView>,
+    HxRequest(boosted): HxRequest,
+) -> Result<Response> {
     if boosted {
         views::auth::partial_register(&v)
     } else {
         views::auth::base_view(&v, "register")
     }
 }
-
 
 pub fn routes() -> Routes {
     Routes::new()

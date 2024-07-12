@@ -22,7 +22,7 @@ impl AuthMailer {
     /// When email sending is failed
     pub async fn send_welcome(ctx: &AppContext, user: &users::Model) -> Result<()> {
         Self::mail_template(
-        ctx,
+            ctx,
             &welcome,
             mailer::Args {
                 to: user.email.to_string(),

@@ -1,6 +1,6 @@
 use axum::http::{HeaderName, HeaderValue};
-use loco_rs::app::AppContext;
 use axum_test::TestServer;
+use loco_rs::app::AppContext;
 use moonlit_binge::{models::users, views::auth::LoginResponse};
 
 const USER_EMAIL: &str = "test@loco.com";
@@ -19,10 +19,7 @@ pub async fn init_user_login(request: &TestServer, ctx: &AppContext) -> LoggedIn
     });
 
     //Creating a new user
-    request
-        .post("/auth/register")
-        .json(&register_payload)
-        .await;
+    request.post("/auth/register").json(&register_payload).await;
     let user = users::Model::find_by_email(&ctx.db, USER_EMAIL)
         .await
         .unwrap();

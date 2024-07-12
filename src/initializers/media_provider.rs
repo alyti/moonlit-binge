@@ -202,18 +202,16 @@ impl ConnectedMediaProvider {
             }
         };
         match items {
-            Ok(items) => {
-                Ok(items
-                    .into_iter()
-                    .filter(|item| {
-                        if let Item::Library(library) = &item {
-                            !self.provider.exclude_library_ids.contains(&library.id)
-                        } else {
-                            true
-                        }
-                    })
-                    .collect())
-            },
+            Ok(items) => Ok(items
+                .into_iter()
+                .filter(|item| {
+                    if let Item::Library(library) = &item {
+                        !self.provider.exclude_library_ids.contains(&library.id)
+                    } else {
+                        true
+                    }
+                })
+                .collect()),
             Err(e) => {
                 tracing::error!("{:?}", e);
                 Err(Error::Anyhow(e))
@@ -242,9 +240,20 @@ impl ConnectedMediaProvider {
         profile: Option<&str>,
         preferred_media_streams: &[MediaStream],
     ) -> Result<TranscodeJob> {
-        let preferred_profile = profile.map(|p| p.to_string()).or(self.preferred_profile.clone()).or_else(|| {
-            Some(self.provider.profiles.first().map(|p| p.name.clone()).ok_or(loco_rs::Error::Message("No profiles available".to_string())).unwrap())
-        }).ok_or_else(|| loco_rs::Error::string("Unknown profile"))?;
+        let preferred_profile = profile
+            .map(|p| p.to_string())
+            .or(self.preferred_profile.clone())
+            .or_else(|| {
+                Some(
+                    self.provider
+                        .profiles
+                        .first()
+                        .map(|p| p.name.clone())
+                        .ok_or(loco_rs::Error::Message("No profiles available".to_string()))
+                        .unwrap(),
+                )
+            })
+            .ok_or_else(|| loco_rs::Error::string("Unknown profile"))?;
         let profile: &serde_json::Value = &self
             .provider
             .profiles

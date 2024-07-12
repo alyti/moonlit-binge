@@ -42,9 +42,7 @@ enum PlayerConnections {
     UserId,
     Identity,
     Status,
-    
 }
-
 
 #[derive(DeriveIden)]
 enum Users {

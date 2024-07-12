@@ -1,6 +1,6 @@
 use loco_rs::cli;
-use moonlit_binge::app::App;
 use migration::Migrator;
+use moonlit_binge::app::App;
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {

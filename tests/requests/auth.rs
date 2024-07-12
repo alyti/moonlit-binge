@@ -63,10 +63,7 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
         });
 
         //Creating a new user
-        _ = request
-            .post("/auth/register")
-            .json(&register_payload)
-            .await;
+        _ = request.post("/auth/register").json(&register_payload).await;
 
         let user = users::Model::find_by_email(&ctx.db, email).await.unwrap();
         let verify_payload = serde_json::json!({
@@ -113,10 +110,7 @@ async fn can_login_without_verify() {
         });
 
         //Creating a new user
-        _ = request
-            .post("/auth/register")
-            .json(&register_payload)
-            .await;
+        _ = request.post("/auth/register").json(&register_payload).await;
 
         //verify user request
         let response = request

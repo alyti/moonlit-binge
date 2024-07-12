@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::jellyfin::types::BaseItem;
 
-
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct Library {
     pub id: String,
@@ -42,22 +41,22 @@ pub struct Content {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum MediaStream {
-    Video{
+    Video {
         index: i32,
         codec: String,
     },
-    Audio{
+    Audio {
         index: i32,
         codec: String,
         language: Option<String>,
         name: Option<String>,
     },
-    Subtitle{
+    Subtitle {
         index: i32,
         codec: String,
         language: Option<String>,
         name: Option<String>,
-    }
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -66,25 +65,16 @@ pub enum LibraryKind {
     Collection,
     Folder,
     Show,
-    Season {
-        season: i32,
-    },
-    Other {
-        name: Option<String>,
-    },
+    Season { season: i32 },
+    Other { name: Option<String> },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(tag = "type")]
 pub enum ContentKind {
     Movie,
-    Episode {
-        season: Option<i32>,
-        episode: i32,
-    },
-    Other {
-        name: Option<String>,
-    },
+    Episode { season: Option<i32>, episode: i32 },
+    Other { name: Option<String> },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]

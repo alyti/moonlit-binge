@@ -4,7 +4,11 @@ use axum_htmx::HxRequest;
 use loco_rs::prelude::*;
 use sea_orm::{Order, QueryOrder};
 
-use crate::{initializers::{media_provider::MediaProviders, view_engine::BetterTeraView}, models::_entities::{player_connections, users}, views};
+use crate::{
+    initializers::{media_provider::MediaProviders, view_engine::BetterTeraView},
+    models::_entities::{player_connections, users},
+    views,
+};
 
 /// Renders the dashboard home page
 ///
@@ -12,7 +16,7 @@ use crate::{initializers::{media_provider::MediaProviders, view_engine::BetterTe
 ///
 /// This function will return an error if render fails
 pub async fn render_home(
-    State(ctx): State<AppContext>, 
+    State(ctx): State<AppContext>,
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     Extension(media_providers): Extension<Box<MediaProviders>>,
@@ -23,7 +27,12 @@ pub async fn render_home(
         .filter(player_connections::Column::UserId.eq(auth.user.id))
         .all(&ctx.db)
         .await?;
-    views::dashboard::base_view(&v, boosted, "home", &serde_json::json!({"connections": &connections}))
+    views::dashboard::base_view(
+        &v,
+        boosted,
+        "home",
+        &serde_json::json!({"connections": &connections}),
+    )
 }
 
 pub fn routes() -> Routes {

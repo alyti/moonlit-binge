@@ -21,10 +21,12 @@ impl Settings {
     }
 
     pub async fn to_cell(ctx: &AppContext) -> Result<()> {
-        SETTINGS.get_or_init(|| async {
-            let settings = Self::from_json(&ctx.config.settings.as_ref().unwrap()).unwrap();
-            Box::new(settings)
-        }).await;
+        SETTINGS
+            .get_or_init(|| async {
+                let settings = Self::from_json(&ctx.config.settings.as_ref().unwrap()).unwrap();
+                Box::new(settings)
+            })
+            .await;
         Ok(())
     }
 }

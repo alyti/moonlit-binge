@@ -18,21 +18,20 @@ pub const JELLYFIN_HTTP_PORT: ContainerPort = ContainerPort::Tcp(8096);
 #[derive(Debug, Clone)]
 pub struct Jellyfin {
     env_vars: HashMap<String, String>,
-    media_mount: Option<Mount>
+    media_mount: Option<Mount>,
 }
 
 impl Default for Jellyfin {
     fn default() -> Self {
-        let env_vars = [
-            ("PUID", "1000"),
-            ("PGID", "1000"),
-            ("TZ", "Etc/UTC"),
-        ]
-        .iter()
-        .map(|(key, value)| (key.to_string(), value.to_string()))
-        .collect();
+        let env_vars = [("PUID", "1000"), ("PGID", "1000"), ("TZ", "Etc/UTC")]
+            .iter()
+            .map(|(key, value)| (key.to_string(), value.to_string()))
+            .collect();
 
-        Self { env_vars, media_mount: None }
+        Self {
+            env_vars,
+            media_mount: None,
+        }
     }
 }
 
@@ -46,9 +45,7 @@ impl Image for Jellyfin {
     }
 
     fn ready_conditions(&self) -> Vec<WaitFor> {
-        vec![WaitFor::message_on_stdout(
-            "Startup complete",
-        )]
+        vec![WaitFor::message_on_stdout("Startup complete")]
     }
 
     fn env_vars(
@@ -98,11 +95,14 @@ mod tests {
         let client = crate::jellyfin::Jellyfin::new(&url, &None);
         client.ping().await?;
         match client.complete_startup("root", None).await {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 println!("Jellyfin is not ready: {}", e);
                 let stdout = container.stdout_to_vec().await?;
-                println!("idk just check the container logs for now: {}", std::str::from_utf8(&stdout).unwrap());
+                println!(
+                    "idk just check the container logs for now: {}",
+                    std::str::from_utf8(&stdout).unwrap()
+                );
                 assert_eq!("1", "");
             }
         }

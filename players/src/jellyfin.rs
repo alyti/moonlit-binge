@@ -1,12 +1,14 @@
-use std::collections::HashMap;
+use self::types::{BaseItemKind, ResponseProfile, SubtitleProfile, TranscodingProfile};
+use crate::types::{
+    Content, ContentKind, Item, Library, LibraryKind, M3U8Playlist, MediaStream, TranscodeJob,
+};
 use chrono::Utc;
 use progenitor::generate_api;
 use reqwest::StatusCode;
 use serde::Serialize;
+use std::collections::HashMap;
 use types::{AuthenticateUserByName, BaseItemDto};
 use uuid::Uuid;
-use crate::types::{Content, ContentKind, Item, Library, LibraryKind, MediaStream, TranscodeJob, M3U8Playlist};
-use self::types::{ResponseProfile, SubtitleProfile, TranscodingProfile, BaseItemKind};
 
 generate_api!("schemas/jellyfin-openapi-stable-models-only.json");
 
@@ -47,7 +49,10 @@ impl Jellyfin {
     pub fn new(base_url: &str, preferences: &Option<serde_json::Value>) -> Self {
         Self {
             base_url: base_url.to_string(),
-            client: reqwest::ClientBuilder::new().connection_verbose(true).build().unwrap(),
+            client: reqwest::ClientBuilder::new()
+                .connection_verbose(true)
+                .build()
+                .unwrap(),
             preferences: preferences.clone(),
         }
     }
@@ -97,12 +102,13 @@ impl Jellyfin {
         }
     }
 
-    pub async fn user_from_identity(&self, identity: &serde_json::Value) -> Result<JellyfinUser, eyre::Error> {
+    pub async fn user_from_identity(
+        &self,
+        identity: &serde_json::Value,
+    ) -> Result<JellyfinUser, eyre::Error> {
         let identity: SetupStep = serde_json::from_value(identity.clone())?;
         match identity {
-            SetupStep::Auth { id, token } => {
-                Ok(self.resume_user(&id, &token))
-            }
+            SetupStep::Auth { id, token } => Ok(self.resume_user(&id, &token)),
             _ => Err(eyre::eyre!("Invalid identity")),
         }
     }
@@ -204,14 +210,20 @@ impl Jellyfin {
         startup.configuration().await?;
         startup.user().await?;
         if let Some(media) = media {
-            startup.add_tvshow_library("Test Shows Library", media).await?;
+            startup
+                .add_tvshow_library("Test Shows Library", media)
+                .await?;
         }
         startup.remote_access().await?;
         startup.complete().await?;
         Ok(())
     }
-    
-    pub async fn preferences(&self, identity: &serde_json::Value, new_preferences: Option<serde_json::Value>) -> Result<Option<serde_json::Value>, eyre::Error> {
+
+    pub async fn preferences(
+        &self,
+        identity: &serde_json::Value,
+        new_preferences: Option<serde_json::Value>,
+    ) -> Result<Option<serde_json::Value>, eyre::Error> {
         todo!()
     }
 }
@@ -223,10 +235,7 @@ pub struct Startup {
 
 impl Startup {
     pub fn new(client: Jellyfin, pass: String) -> Self {
-        Self {
-            client,
-            pass,
-        }
+        Self { client, pass }
     }
 
     // POST /Startup/Configuration
@@ -282,7 +291,11 @@ impl Startup {
         if response.status() == StatusCode::NO_CONTENT {
             Ok(())
         } else {
-            Err(eyre::eyre!("Invalid status code: {}\n{}", response.status(), response.text().await?))
+            Err(eyre::eyre!(
+                "Invalid status code: {}\n{}",
+                response.status(),
+                response.text().await?
+            ))
         }
     }
 
@@ -554,7 +567,9 @@ impl JellyfinUser {
             .error_for_status()?
             .json()
             .await?;
-        Ok(response.items.expect("No items in BaseItemDtoQueryResult")
+        Ok(response
+            .items
+            .expect("No items in BaseItemDtoQueryResult")
             .into_iter()
             .map(|view| view.into())
             .collect())
@@ -562,7 +577,10 @@ impl JellyfinUser {
 
     pub async fn items(&self, library: Option<Library>) -> Result<Vec<Item>, reqwest::Error> {
         match library {
-            None =>  self.views().await.map(|views| views.into_iter().map(Item::Library).collect()),
+            None => self
+                .views()
+                .await
+                .map(|views| views.into_iter().map(Item::Library).collect()),
             Some(lib) => {
                 let url = format!("{}/Users/{}/Items", self.client.base_url, self.id);
                 let query: &[(&str, &str)] = &[
@@ -591,9 +609,12 @@ impl JellyfinUser {
                     .error_for_status()?
                     .json()
                     .await?;
-                Ok(response.items.unwrap_or_default().into_iter().map(|item| {
-                    item.into()
-                }).collect())
+                Ok(response
+                    .items
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|item| item.into())
+                    .collect())
             }
         }
     }
@@ -885,24 +906,39 @@ impl JellyfinUser {
             .error_for_status()?;
         Ok(())
     }
-    
-    pub async fn transcode(&self, content: &Content, profile: serde_json::Value, preferred_media_streams: &[MediaStream]) -> Result<TranscodeJob, eyre::Error> {
-        let audio_index = preferred_media_streams.iter().filter_map(|stream| {
-            match stream {
+
+    pub async fn transcode(
+        &self,
+        content: &Content,
+        profile: serde_json::Value,
+        preferred_media_streams: &[MediaStream],
+    ) -> Result<TranscodeJob, eyre::Error> {
+        let audio_index = preferred_media_streams
+            .iter()
+            .filter_map(|stream| match stream {
                 MediaStream::Audio { index, .. } => Some(index),
                 _ => None,
-            }
-        }).next();
-        let subtitle_index = preferred_media_streams.iter().filter_map(|stream| {
-            match stream {
+            })
+            .next();
+        let subtitle_index = preferred_media_streams
+            .iter()
+            .filter_map(|stream| match stream {
                 MediaStream::Subtitle { index, .. } => Some(index),
                 _ => None,
-            }
-        }).next();
-        let url = format!("{}/Items/{}/PlaybackInfo", self.client.base_url, &content.id);
-        let pretty = serde_json::to_string_pretty(&profile).map_err(|e| eyre::eyre!("Failed to serialize profile: {}", e))?;
+            })
+            .next();
+        let url = format!(
+            "{}/Items/{}/PlaybackInfo",
+            self.client.base_url, &content.id
+        );
+        let pretty = serde_json::to_string_pretty(&profile)
+            .map_err(|e| eyre::eyre!("Failed to serialize profile: {}", e))?;
         let query = PlaybackQuery::new(&self.id, audio_index.copied(), subtitle_index.copied());
-        tracing::info!("Transcoding with profile: {} and query: {:?}", pretty, query);
+        tracing::info!(
+            "Transcoding with profile: {} and query: {:?}",
+            pretty,
+            query
+        );
         let response: types::PlaybackInfoResponse = self
             .client
             .client
@@ -920,15 +956,25 @@ impl JellyfinUser {
             .await?;
         tracing::info!(name: "jellyfin_resp", ?response);
 
-        let path = response.media_sources.into_iter().filter_map(|source| {
-            source.transcoding_url
-        }).next().expect("No transcoding url in PlaybackInfoResponse");
+        let path = response
+            .media_sources
+            .into_iter()
+            .filter_map(|source| source.transcoding_url)
+            .next()
+            .expect("No transcoding url in PlaybackInfoResponse");
         let path = format!("{}{}", self.client.base_url, path);
 
-        let manifest = self.client.client.get(&path).send().await?.error_for_status()?.bytes().await?;
-        let mut master = m3u8_rs::parse_master_playlist_res(&manifest).map_err(
-            |e| eyre::eyre!("Failed to parse master playlist: {}", e)
-        )?;
+        let manifest = self
+            .client
+            .client
+            .get(&path)
+            .send()
+            .await?
+            .error_for_status()?
+            .bytes()
+            .await?;
+        let mut master = m3u8_rs::parse_master_playlist_res(&manifest)
+            .map_err(|e| eyre::eyre!("Failed to parse master playlist: {}", e))?;
         let mut media = HashMap::new();
         for variant in master.variants.iter_mut() {
             let name = if let Some(res) = variant.resolution.as_ref() {
@@ -936,14 +982,27 @@ impl JellyfinUser {
             } else {
                 "unknown".to_string()
             };
-            let manifest_media = self.client.client.get(format!("{}/videos/{}/{}", self.client.base_url, &content.id, variant.uri)).send().await?.error_for_status()?.bytes().await?;
+            let manifest_media = self
+                .client
+                .client
+                .get(format!(
+                    "{}/videos/{}/{}",
+                    self.client.base_url, &content.id, variant.uri
+                ))
+                .send()
+                .await?
+                .error_for_status()?
+                .bytes()
+                .await?;
             variant.uri = format!("{}.m3u8", name);
-            let mut media_playlist = m3u8_rs::parse_media_playlist_res(&manifest_media).map_err(
-                |e| eyre::eyre!("Failed to parse media playlist: {}", e)
-            )?;
+            let mut media_playlist = m3u8_rs::parse_media_playlist_res(&manifest_media)
+                .map_err(|e| eyre::eyre!("Failed to parse media playlist: {}", e))?;
 
             media_playlist.segments.iter_mut().for_each(|variant| {
-                variant.uri = format!("{}/videos/{}/{}", self.client.base_url, &content.id, variant.uri);
+                variant.uri = format!(
+                    "{}/videos/{}/{}",
+                    self.client.base_url, &content.id, variant.uri
+                );
             });
             media.insert(name, media_playlist);
         }
@@ -957,22 +1016,22 @@ impl JellyfinUser {
 
 #[derive(Serialize, Debug, Clone)]
 struct PlaybackQuery {
-    #[serde(rename="UserId")]
+    #[serde(rename = "UserId")]
     user_id: String,
-    #[serde(rename="AudioStreamIndex")]
+    #[serde(rename = "AudioStreamIndex")]
     audio_stream_index: Option<i32>,
-    #[serde(rename="SubtitleStreamIndex")]
+    #[serde(rename = "SubtitleStreamIndex")]
     subtitle_stream_index: Option<i32>,
 
-    #[serde(rename="StartTimeTicks")]
+    #[serde(rename = "StartTimeTicks")]
     start_time_ticks: Option<i64>,
-    #[serde(rename="IsPlayback")]
+    #[serde(rename = "IsPlayback")]
     is_playback: Option<bool>,
-    #[serde(rename="AutoOpenLiveStream")]
+    #[serde(rename = "AutoOpenLiveStream")]
     auto_open_live_stream: Option<bool>,
-    #[serde(rename="MediaSourceId")]
+    #[serde(rename = "MediaSourceId")]
     media_source_id: Option<String>,
-    #[serde(rename="MaxStreamingBitrate")]
+    #[serde(rename = "MaxStreamingBitrate")]
     max_streaming_bitrate: Option<i64>,
 }
 
@@ -1009,15 +1068,27 @@ impl From<BaseItemDto> for Library {
             name: item.name.expect("No name in ViewDto"),
             description: None,
             icon_url: Some(match item.type_.unwrap() {
-                BaseItemKind::Season | BaseItemKind::CollectionFolder | BaseItemKind::Folder =>format!("/Items/{}/Images/Primary?maxHeight=300&maxWidth=300&quality=90", item.id.expect("No id in ViewDto")),
-                _ => format!("/Items/{}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90", item.id.expect("No id in ViewDto")),
+                BaseItemKind::Season | BaseItemKind::CollectionFolder | BaseItemKind::Folder => {
+                    format!(
+                        "/Items/{}/Images/Primary?maxHeight=300&maxWidth=300&quality=90",
+                        item.id.expect("No id in ViewDto")
+                    )
+                }
+                _ => format!(
+                    "/Items/{}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90",
+                    item.id.expect("No id in ViewDto")
+                ),
             }),
             kind: match item.type_.unwrap() {
                 BaseItemKind::Folder => LibraryKind::Folder,
-                BaseItemKind::Season => LibraryKind::Season { season: item.index_number.unwrap_or_default() },
+                BaseItemKind::Season => LibraryKind::Season {
+                    season: item.index_number.unwrap_or_default(),
+                },
                 BaseItemKind::Series => LibraryKind::Show,
                 BaseItemKind::CollectionFolder => LibraryKind::Collection,
-                x => LibraryKind::Other { name: Some(x.to_string()) },
+                x => LibraryKind::Other {
+                    name: Some(x.to_string()),
+                },
             },
         }
     }
@@ -1044,42 +1115,39 @@ impl From<BaseItemDto> for Content {
             name,
             description,
             icon_url,
-            media_streams: item.media_streams.expect("no media streams").into_iter().filter_map(|stream| {
-                match &stream.type_.expect("no media type") {
-                    types::MediaStreamType::Video => {
-                        Some(MediaStream::Video {
-                            index: stream.index.expect("no index"),
-                            codec: stream.codec.expect("no codec"),
-                        })
-                    }
-                    types::MediaStreamType::Audio => {
-                        Some(MediaStream::Audio {
-                            index: stream.index.expect("no index"),
-                            codec: stream.codec.expect("no codec"),
-                            language: stream.language,
-                            name: stream.title,
-                        })
-                    }
-                    types::MediaStreamType::Subtitle => {
-                        Some(MediaStream::Subtitle {
-                            index: stream.index.expect("no index"),
-                            codec: stream.codec.expect("no codec"),
-                            language: stream.language,
-                            name: stream.title,
-                        })
-                    }
-                    _ => {
-                        None
-                    }
-                }
-            }).collect(),
+            media_streams: item
+                .media_streams
+                .expect("no media streams")
+                .into_iter()
+                .filter_map(|stream| match &stream.type_.expect("no media type") {
+                    types::MediaStreamType::Video => Some(MediaStream::Video {
+                        index: stream.index.expect("no index"),
+                        codec: stream.codec.expect("no codec"),
+                    }),
+                    types::MediaStreamType::Audio => Some(MediaStream::Audio {
+                        index: stream.index.expect("no index"),
+                        codec: stream.codec.expect("no codec"),
+                        language: stream.language,
+                        name: stream.title,
+                    }),
+                    types::MediaStreamType::Subtitle => Some(MediaStream::Subtitle {
+                        index: stream.index.expect("no index"),
+                        codec: stream.codec.expect("no codec"),
+                        language: stream.language,
+                        name: stream.title,
+                    }),
+                    _ => None,
+                })
+                .collect(),
             kind: match item.type_.expect("no type") {
                 BaseItemKind::Movie => ContentKind::Movie,
                 BaseItemKind::Episode => ContentKind::Episode {
                     season: item.parent_index_number,
                     episode: item.index_number.unwrap_or_default(),
                 },
-                x => ContentKind::Other { name: Some(x.to_string()) },
+                x => ContentKind::Other {
+                    name: Some(x.to_string()),
+                },
             },
         }
     }

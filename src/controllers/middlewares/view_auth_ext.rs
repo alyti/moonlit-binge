@@ -1,9 +1,14 @@
 use std::{
-    convert::Infallible, sync::Arc, task::{Context, Poll}
+    convert::Infallible,
+    sync::Arc,
+    task::{Context, Poll},
 };
 
 use axum::{
-    body::Body, extract::{FromRequestParts, Request}, response::Response, Extension
+    body::Body,
+    extract::{FromRequestParts, Request},
+    response::Response,
+    Extension,
 };
 use futures_util::future::BoxFuture;
 use loco_rs::prelude::{auth::JWTWithUser, *};
@@ -65,7 +70,7 @@ where
             // Example of extracting JWT and checking roles
             let (mut parts, body) = req.into_parts();
             let auth = JWTWithUser::<users::Model>::from_request_parts(&mut parts, &state).await;
-        
+
             let authed = match auth {
                 Ok(auth) => {
                     json!({"logged_in": true, "user": auth.user})
@@ -78,9 +83,9 @@ where
             let view = Extension::<ViewEngine::<initializers::view_engine::BetterTeraView>>::from_request_parts(&mut parts, &state).await;
             let view = match view {
                 Ok(mut view) => {
-                    view.0.0.default_context.insert("auth", &authed);
+                    view.0 .0.default_context.insert("auth", &authed);
                     view.0
-                },
+                }
                 Err(_) => {
                     return Ok(Response::builder()
                         .status(500)

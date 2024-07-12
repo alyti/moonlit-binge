@@ -4,14 +4,27 @@ use async_trait::async_trait;
 use axum::Router;
 use chrono::format;
 use loco_rs::{
-    app::{AppContext, Hooks, Initializer}, boot::{create_app, BootResult, ServeParams, StartMode}, controller::AppRoutes, db::{self, truncate_table}, environment::Environment, storage::Storage, task::Tasks, worker::{AppWorker, Processor}, Result
+    app::{AppContext, Hooks, Initializer},
+    boot::{create_app, BootResult, ServeParams, StartMode},
+    controller::AppRoutes,
+    db::{self, truncate_table},
+    environment::Environment,
+    storage::Storage,
+    task::Tasks,
+    worker::{AppWorker, Processor},
+    Result,
 };
 use migration::Migrator;
 use sea_orm::DatabaseConnection;
 use tracing::warn;
 
 use crate::{
-    common::settings::{self, SETTINGS}, controllers::{self, middlewares}, initializers, models::_entities::users, tasks, workers::downloader::DownloadWorker
+    common::settings::{self, SETTINGS},
+    controllers::{self, middlewares},
+    initializers,
+    models::_entities::users,
+    tasks,
+    workers::downloader::DownloadWorker,
 };
 
 pub struct App;
@@ -40,13 +53,20 @@ impl Hooks for App {
                 tokio::net::TcpListener::from_std(listener)?
             }
             // otherwise fall back to configured binding
-            None => tokio::net::TcpListener::bind(&format!(
-                "{}:{}",
-                server_config.binding, server_config.port
-            )).await?,
+            None => {
+                tokio::net::TcpListener::bind(&format!(
+                    "{}:{}",
+                    server_config.binding, server_config.port
+                ))
+                .await?
+            }
         };
 
-        axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>()).await?;
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await?;
 
         Ok(())
     }
@@ -59,8 +79,8 @@ impl Hooks for App {
         match &ctx.environment {
             Environment::Any(a) if a.starts_with(".suffering") => {
                 tokio::fs::remove_file(format!("config/{}.yaml", a)).await?;
-            },
-            _ => {},
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -68,7 +88,10 @@ impl Hooks for App {
     async fn after_context(ctx: AppContext) -> Result<AppContext> {
         settings::Settings::to_cell(&ctx).await?;
         Ok(AppContext {
-            storage: Storage::single(loco_rs::storage::drivers::local::new_with_prefix(&SETTINGS.get().unwrap().transcoding_dir)?).into(),
+            storage: Storage::single(loco_rs::storage::drivers::local::new_with_prefix(
+                &SETTINGS.get().unwrap().transcoding_dir,
+            )?)
+            .into(),
             ..ctx
         })
     }
@@ -84,7 +107,9 @@ impl Hooks for App {
     fn routes(ctx: &AppContext) -> AppRoutes {
         AppRoutes::with_default_routes()
             .add_route(controllers::player_connections::routes())
-            .add_route(controllers::auth::routes().layer(middlewares::view_auth_ext::ViewEngineAuthExt::new(ctx.clone())))
+            .add_route(controllers::auth::routes().layer(
+                middlewares::view_auth_ext::ViewEngineAuthExt::new(ctx.clone()),
+            ))
             .add_route(controllers::user::routes())
             .add_route(controllers::dashboard::routes())
             .add_route(controllers::playlist::routes())
