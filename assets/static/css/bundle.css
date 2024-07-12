@@ -353,6 +353,18 @@ img, video {
 .layout\.html {
 }
 
+.material-symbols-add-diamond-outline-sharp {
+  --en-icon: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='1em' height='1em' preserveAspectRatio='XMidYMid meet' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M11 16h2v-3h3v-2h-3V8h-2v3H8v2h3zm1.025 6.85L1.225 12l10.8-10.825L22.775 12zM12 20l7.975-8L12 4l-7.975 8zm0-8'/%3E%3C/svg%3E");
+  mask: var(--en-icon) no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask: var(--en-icon) no-repeat;
+  -webkit-mask-size: 100% 100%;
+  background-color: currentColor;
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
 .material-symbols-arrow-back-ios {
   --en-icon: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='1em' height='1em' preserveAspectRatio='XMidYMid meet' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M10 22L0 12L10 2l1.775 1.775L3.55 12l8.225 8.225z'/%3E%3C/svg%3E");
   mask: var(--en-icon) no-repeat;
