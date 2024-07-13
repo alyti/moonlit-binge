@@ -89,7 +89,7 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
         with_settings!({
             filters => testing::cleanup_user_model()
         }, {
-            assert_debug_snapshot!(test_name, (response.status_code(), response.text()));
+            assert_debug_snapshot!(test_name, (response.status_code(), response.headers()));
         });
     })
     .await;
@@ -123,7 +123,7 @@ async fn can_login_without_verify() {
         with_settings!({
             filters => testing::cleanup_user_model()
         }, {
-            assert_debug_snapshot!((response.status_code(), response.text()));
+            assert_debug_snapshot!((response.status_code(), response.headers()));
         });
     })
     .await;

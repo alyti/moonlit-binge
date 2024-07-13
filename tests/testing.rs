@@ -1,3 +1,5 @@
+use std::env::temp_dir;
+
 use async_once_cell::OnceCell;
 use axum_test::{TestServer, TestServerConfig};
 use loco_rs::{
@@ -11,7 +13,7 @@ use players::{
     testcontainers::{Jellyfin as JellyfinContainer, JELLYFIN_HTTP_PORT},
 };
 use serde_json::json;
-use testcontainers::{runners::AsyncRunner, ContainerAsync};
+use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
 use testcontainers_modules::{postgres::Postgres, redis::Redis};
 use uuid::Uuid;
 
@@ -22,7 +24,7 @@ static ONCE_JELLYFIN: OnceCell<ContainerAsync<JellyfinContainer>> = OnceCell::ne
 async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
     let name = Uuid::new_v4();
     let result = tera::Tera::one_off(
-        &tokio::fs::read_to_string("config/test.yaml.tpl")
+        &tokio::fs::read_to_string("config/test.yaml.tera")
             .await
             .unwrap(),
         &tera::Context::from_value(ctx).unwrap(),
@@ -52,13 +54,10 @@ where
 {
     // Oh look are those containarized hard dependencies that we absolutely require to even run tests? Yup
     // Oh neat they are all in one place and we don't need to POLLUTE THE ENVIRONMENT... right?...
-    let (pg, redis) = {
-        // This is a bit cursed, but for some reason testcontainers crate and the testcontainers_modules crate are not compatible with each other?
-        use testcontainers_modules::testcontainers::runners::AsyncRunner;
-        let pg = Postgres::default().start().await.unwrap();
-        let redis = Redis.start().await.unwrap();
-        (pg, redis)
-    };
+
+    let pg = Postgres::default().start().await.unwrap();
+    let redis = Redis.start().await.unwrap();
+
     let jellyfin = Box::pin(ONCE_JELLYFIN.get_or_init(async {
         let container = JellyfinContainer::default()
             .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
@@ -80,13 +79,17 @@ where
     }))
     .await;
 
-    // tokio::task::block_in_place(move || handle.block_on(ONCE_JELLYFIN.get().unwrap().remove()));
+    let tmp_transcoding = temp_dir()
+        .join("transcoding")
+        .join(Uuid::new_v4().to_string());
+    tokio::fs::create_dir_all(tmp_transcoding.clone())
+        .await
+        .unwrap();
 
     // Sike we sure have to, BECAUSE THANKS LOCO
     let env = prepare_env_file(json!({
         "database_url": format!(
-            "postgres://postgres:postgres@{}:{}/postgres",
-            pg.get_host().await.unwrap(),
+            "postgres://postgres:postgres@127.0.0.1:{}/postgres?ssl-mode=disable",
             pg.get_host_port_ipv4(5432).await.unwrap()
         ),
         "redis_url": format!(
@@ -95,7 +98,8 @@ where
             redis.get_host_port_ipv4(6379).await.unwrap()
         ),
         "jellyfin_url": format!("http://{}:{}", jellyfin.get_host().await.unwrap(), jellyfin.get_host_port_ipv4(JELLYFIN_HTTP_PORT).await.unwrap()),
-        "port": 0 // Neat little thing about unix port 0: it will be randomly allocated :D
+        "port": 0, // Neat little thing about unix port 0: it will be randomly allocated :D
+        "transcoding_folder": tmp_transcoding.to_str().unwrap(),
     }))
     .await
     .unwrap();

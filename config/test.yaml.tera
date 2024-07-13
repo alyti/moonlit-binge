@@ -2,7 +2,7 @@
 # + templated URLs to be populated by boot_with_testcontainers
 # - comments
 logger:
-  enable: false
+  enable: true
   level: debug
   format: compact
 
@@ -39,11 +39,11 @@ mailer:
 
 database:
   uri: {{ database_url }}
-  enable_logging: false
+  enable_logging: true
   connect_timeout: 500
   idle_timeout: 500
-  min_connections: 1
-  max_connections: 1
+  min_connections: 2
+  max_connections: 2
   auto_migrate: true
   dangerously_truncate: true
   dangerously_recreate: false
@@ -56,9 +56,13 @@ auth:
   jwt:
     secret: HrAc0tCKyCWYT5HpzDp2
     expiration: 604800
+    location:
+      from: Cookie
+      name: moonlit_binge_jwt
+
 
 settings:
-  transcoding_dir: {{get_env(name="TRANSCODING_DIR", default=".transcodes")}}
+  transcoding_dir: {{ transcoding_folder }}
   # See https://docs.rs/axum-client-ip/latest/axum_client_ip/enum.SecureClientIpSource.html for more options
   ip_source: {{get_env(name="IP_SOURCE", default="ConnectInfo")}}
 
@@ -69,6 +73,7 @@ initializers:
       url: "{{ jellyfin_url }}"
       type: "jellyfin"
       dangerously_allow_custom_profiles: true
+      exclude_library_ids: []
       profiles: 
         - name: "VRChat"
           description: "Media profile best suited for VRChat video player worlds"

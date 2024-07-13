@@ -17,7 +17,6 @@ macro_rules! configure_insta {
 }
 
 #[tokio::test]
-#[serial]
 async fn can_get_current_user() {
     configure_insta!();
 

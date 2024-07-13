@@ -6,6 +6,7 @@ use moonlit_binge::{models::users, views::auth::LoginResponse};
 const USER_EMAIL: &str = "test@loco.com";
 const USER_PASSWORD: &str = "1234";
 
+#[derive(Debug)]
 pub struct LoggedInUser {
     pub user: users::Model,
     pub token: String,
@@ -38,18 +39,25 @@ pub async fn init_user_login(request: &TestServer, ctx: &AppContext) -> LoggedIn
         }))
         .await;
 
-    let login_response: LoginResponse = serde_json::from_str(&response.text()).unwrap();
+    let header = response.header("set-cookie");
+    let cookie = header.to_str().unwrap();
+    let split: Vec<&str> = cookie.split('=').collect();
+    let token = split[1].to_string();
+
+    assert_eq!(split[0], "moonlit_binge_jwt", "Token not found in cookie");
+    assert_eq!(&token[0..2], "ey", "Token doesn't look like a JWT");
 
     LoggedInUser {
         user: users::Model::find_by_email(&ctx.db, USER_EMAIL)
             .await
             .unwrap(),
-        token: login_response.token,
+        token,
     }
 }
 
 pub fn auth_header(token: &str) -> (HeaderName, HeaderValue) {
-    let auth_header_value = HeaderValue::from_str(&format!("Bearer {}", &token)).unwrap();
+    let auth_header_value =
+        HeaderValue::from_str(&format!("moonlit_binge_jwt={}", &token)).unwrap();
 
-    (HeaderName::from_static("authorization"), auth_header_value)
+    (HeaderName::from_static("cookie"), auth_header_value)
 }

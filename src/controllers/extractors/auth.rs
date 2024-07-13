@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use axum::{
     body::Body,
     extract::{FromRef, FromRequestParts, Query},
-    http::{request::Parts, HeaderMap},
+    http::{request::Parts, HeaderMap, Uri},
     response::Response,
 };
 use axum_extra::extract::cookie;
@@ -40,22 +40,23 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let ctx: AppContext = AppContext::from_ref(state);
 
-        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp)?, parts).map_err(resp)?;
+        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp(&parts.uri))?, parts)
+            .map_err(resp(&parts.uri))?;
 
-        let jwt_secret = ctx.config.get_jwt_config().map_err(resp)?;
+        let jwt_secret = ctx.config.get_jwt_config().map_err(resp(&parts.uri))?;
 
         match auth::jwt::JWT::new(&jwt_secret.secret).validate(&token) {
             Ok(claims) => {
                 let user = T::find_by_claims_key(&ctx.db, &claims.claims.pid)
                     .await
-                    .map_err(|e| resp(Error::string(&e.to_string())))?;
+                    .map_err(|e| resp(&parts.uri)(Error::string(&e.to_string())))?;
                 Ok(Self {
                     claims: claims.claims,
                     user,
                 })
             }
             Err(e) => {
-                return Err(resp(Error::string(&e.to_string())));
+                return Err(resp(&parts.uri)(Error::string(&e.to_string())));
             }
         }
     }
@@ -80,28 +81,38 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let ctx: AppContext = AppContext::from_ref(state); // change to ctx
 
-        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp)?, parts).map_err(resp)?;
+        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp(&parts.uri))?, parts)
+            .map_err(resp(&parts.uri))?;
 
-        let jwt_secret = ctx.config.get_jwt_config().map_err(resp)?;
+        let jwt_secret = ctx.config.get_jwt_config().map_err(resp(&parts.uri))?;
 
         match auth::jwt::JWT::new(&jwt_secret.secret).validate(&token) {
             Ok(claims) => Ok(Self {
                 claims: claims.claims,
             }),
             Err(e) => {
-                return Err(resp(Error::string(&e.to_string())));
+                return Err(resp(&parts.uri)(Error::string(&e.to_string())));
             }
         }
     }
 }
 
-fn resp(e: loco_rs::Error) -> Response<Body> {
-    tracing::warn!("auth error: {}", e);
-    Response::builder()
-        .status(303)
-        .header(axum::http::header::LOCATION, "/auth/login")
-        .body(Body::empty())
-        .unwrap()
+fn resp(uri: &Uri) -> impl FnOnce(loco_rs::Error) -> Response<Body> {
+    let url = uri.to_string();
+    move |e| {
+        tracing::warn!("auth error: {}", e);
+        Response::builder()
+            .status(303)
+            .header(
+                axum::http::header::LOCATION,
+                format!(
+                    "/auth/login?return={}",
+                    percent_encoding::utf8_percent_encode(&url, percent_encoding::NON_ALPHANUMERIC)
+                ),
+            )
+            .body(Body::empty())
+            .unwrap()
+    }
 }
 
 /// extract JWT token from context configuration
