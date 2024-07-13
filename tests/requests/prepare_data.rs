@@ -1,7 +1,7 @@
 use axum::http::{HeaderName, HeaderValue};
 use axum_test::TestServer;
 use loco_rs::app::AppContext;
-use moonlit_binge::{models::users, views::auth::LoginResponse};
+use moonlit_binge::models::users;
 
 const USER_EMAIL: &str = "test@loco.com";
 const USER_PASSWORD: &str = "1234";

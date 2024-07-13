@@ -1,5 +1,3 @@
-use insta::{assert_debug_snapshot, with_settings};
-use loco_rs::testing;
 use moonlit_binge::app::App;
 use serial_test::serial;
 
@@ -25,7 +23,7 @@ async fn can_aaa() {
         let user = prepare_data::init_user_login(&request, &ctx).await;
 
         let (auth_key, auth_value) = prepare_data::auth_header(&user.token);
-        let response = request
+        let _response = request
             .get("/api/user/current")
             .add_header(auth_key, auth_value)
             .await;

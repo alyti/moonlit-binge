@@ -13,7 +13,7 @@ use players::{
     testcontainers::{Jellyfin as JellyfinContainer, JELLYFIN_HTTP_PORT},
 };
 use serde_json::json;
-use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
+use testcontainers::{runners::AsyncRunner, ContainerAsync};
 use testcontainers_modules::{postgres::Postgres, redis::Redis};
 use uuid::Uuid;
 
