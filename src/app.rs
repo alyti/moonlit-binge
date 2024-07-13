@@ -2,7 +2,6 @@ use std::{net::SocketAddr, path::Path};
 
 use async_trait::async_trait;
 use axum::Router;
-use chrono::format;
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     boot::{create_app, BootResult, ServeParams, StartMode},

@@ -1,10 +1,9 @@
-use std::{collections::BTreeMap, str::FromStr};
+use std::collections::BTreeMap;
 
 use axum::{async_trait, Extension, Router as AxumRouter};
 use eyre::ContextCompat;
 use loco_rs::{
     app::{AppContext, Initializer},
-    controller::views::{ViewEngine, ViewRenderer},
     Error, Result,
 };
 use players::types::{Content, Item, Library, MediaStream, TranscodeJob};
@@ -94,7 +93,7 @@ impl Initializer for MediaProviderInitializer {
         Ok(())
     }
 
-    async fn after_routes(&self, router: AxumRouter, ctx: &AppContext) -> Result<AxumRouter> {
+    async fn after_routes(&self, router: AxumRouter, _ctx: &AppContext) -> Result<AxumRouter> {
         Ok(router.layer(Extension(
             CELL.get()
                 .wrap_err(Error::Message(

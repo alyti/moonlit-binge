@@ -10,6 +10,8 @@ use crate::{
     views,
 };
 
+use super::extractors::auth::JWTWithUser;
+
 /// Renders the dashboard home page
 ///
 /// # Errors
@@ -20,7 +22,7 @@ pub async fn render_home(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     Extension(media_providers): Extension<Box<MediaProviders>>,
-    auth: auth::JWTWithUser<users::Model>,
+    auth: JWTWithUser<users::Model>,
 ) -> Result<Response> {
     let connections = player_connections::Entity::find()
         .order_by(player_connections::Column::Id, Order::Desc)

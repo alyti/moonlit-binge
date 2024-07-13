@@ -9,6 +9,7 @@ use loco_rs::prelude::*;
 use players::types::{Item, Library, MediaStream};
 use sea_orm::{sea_query::Order, QueryOrder};
 use serde::{Deserialize, Serialize};
+use crate::controllers::extractors::auth::JWTWithUser;
 
 use crate::{
     initializers::{
@@ -78,7 +79,7 @@ pub async fn add(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     State(ctx): State<AppContext>,
     Extension(media_providers): Extension<Box<MediaProviders>>,
-    auth: auth::JWTWithUser<users::Model>,
+    auth: JWTWithUser<users::Model>,
     Json(params): Json<Params>,
 ) -> Result<Response> {
     let provider = media_providers
