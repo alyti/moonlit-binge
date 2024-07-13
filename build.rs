@@ -45,6 +45,7 @@ fn gen_css<'a, T: AsRef<Path>>(
     }
 }
 
+#[allow(clippy::verbose_file_reads)]
 fn scan_path<T: AsRef<Path>>(glob_path: T, buffer: &mut String) {
     let (prefix, glob) = match Glob::new(
         glob_path
