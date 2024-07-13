@@ -44,8 +44,6 @@ pub enum MediaProviderType {
     // Add your own media server type here, make sure to implement it in players crate too.
 }
 
-
-
 pub struct MediaProviderInitializer;
 #[async_trait]
 impl Initializer for MediaProviderInitializer {
@@ -76,9 +74,7 @@ impl Initializer for MediaProviderInitializer {
             for provider in media_providers {
                 let id = provider.id.clone();
                 if map.insert(id.clone(), provider).is_some() {
-                    return Err(Error::Message(format!(
-                        "Duplicate media provider id: {id}"
-                    )));
+                    return Err(Error::Message(format!("Duplicate media provider id: {id}")));
                 }
             }
             Ok(Box::new(map))
@@ -107,7 +103,10 @@ impl MediaProvider {
         match self.type_field {
             MediaProviderType::Jellyfin => {
                 let jellyfin = players::jellyfin::Jellyfin::new(&self.url, &None);
-                jellyfin.setup(setup).await.map_err(std::convert::Into::into)
+                jellyfin
+                    .setup(setup)
+                    .await
+                    .map_err(std::convert::Into::into)
             }
         }
     }
@@ -143,7 +142,8 @@ impl TryFrom<player_connections::Model> for ConnectedMediaProvider {
 
 impl ConnectedMediaProvider {
     // mostly used in setup before we have a real connection model
-    #[must_use] pub fn from_provider_and_connection(
+    #[must_use]
+    pub fn from_provider_and_connection(
         provider: MediaProvider,
         identity: serde_json::Value,
     ) -> Self {
@@ -177,7 +177,10 @@ impl ConnectedMediaProvider {
             MediaProviderType::Jellyfin => {
                 let jellyfin =
                     players::jellyfin::Jellyfin::new(&self.provider.url, &self.preferences);
-                jellyfin.test(&self.identity).await.map_err(std::convert::Into::into)
+                jellyfin
+                    .test(&self.identity)
+                    .await
+                    .map_err(std::convert::Into::into)
             }
         }
     }

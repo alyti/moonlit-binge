@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use axum::{
-    body::Body, extract::{FromRef, FromRequestParts, Query}, http::{request::Parts, HeaderMap}, response::Response
+    body::Body,
+    extract::{FromRef, FromRequestParts, Query},
+    http::{request::Parts, HeaderMap},
+    response::Response,
 };
 use axum_extra::extract::cookie;
 use serde::{Deserialize, Serialize};

@@ -51,10 +51,20 @@ async fn register(
             );
             match err {
                 ModelError::DbErr(DbErr::Custom(err)) => {
-                    return views::auth::base_view(&v, boosted, "register", &serde_json::json!({"errors": err}));
+                    return views::auth::base_view(
+                        &v,
+                        boosted,
+                        "register",
+                        &serde_json::json!({"errors": err}),
+                    );
                 }
                 _ => {
-                    return views::auth::base_view(&v, boosted, "register", &serde_json::json!({"errors": "Unknown error, try again later."}));
+                    return views::auth::base_view(
+                        &v,
+                        boosted,
+                        "register",
+                        &serde_json::json!({"errors": "Unknown error, try again later."}),
+                    );
                 }
             }
         }
@@ -170,10 +180,7 @@ async fn login(
     let mut cookie = Cookie::new("moonlit_binge_jwt", token);
     cookie.set_path("/");
 
-    Ok((
-        HxRedirect(Uri::from_static("/")),
-        jar.add(cookie),
-    ))
+    Ok((HxRedirect(Uri::from_static("/")), jar.add(cookie)))
 }
 
 pub async fn render_auth_login(

@@ -4,7 +4,7 @@ use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{common::settings::SETTINGS};
+use crate::common::settings::SETTINGS;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct PlaylistCreateParams {
@@ -100,9 +100,7 @@ async fn splice(
         .unwrap();
     tokio::fs::write(playlist_base_path.join("main.m3u8"), v).await?;
 
-    for (name, media) in &mut spliced_media
-        .expect("Missing spliced media files")
-    {
+    for (name, media) in &mut spliced_media.expect("Missing spliced media files") {
         let mut v: Vec<u8> = Vec::new();
         media.write_to(&mut v).unwrap();
         tokio::fs::write(playlist_base_path.join(format!("{name}.m3u8")), v).await?;

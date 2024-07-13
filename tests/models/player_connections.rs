@@ -1,7 +1,6 @@
 use loco_rs::testing;
 use moonlit_binge::app::App;
 
-
 macro_rules! configure_insta {
     ($($expr:expr),*) => {
         let mut settings = insta::Settings::clone_current();

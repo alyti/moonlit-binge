@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    collections::HashMap,
-    path::Path,
-};
+use std::{borrow::Cow, collections::HashMap, path::Path};
 
 use testcontainers::{
     core::{ContainerPort, Mount, WaitFor},

@@ -1,7 +1,4 @@
-use std::{
-    path::{PathBuf},
-    str::FromStr,
-};
+use std::{path::PathBuf, str::FromStr};
 
 use axum::{body::Bytes, http::Uri};
 use futures_util::StreamExt;
@@ -16,7 +13,7 @@ use reqwest_retry::{
 };
 
 use crate::{
-    initializers::media_provider::{ConnectedMediaProvider},
+    initializers::media_provider::ConnectedMediaProvider,
     models::_entities::player_connections::Model,
 };
 

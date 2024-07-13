@@ -191,6 +191,7 @@
                   statix.enable = true;
                   nixpkgs-fmt.enable = true;
                   clippy.enable = true;
+                  rustfmt.enable = true;
                 };
 
                 services = {

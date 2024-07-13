@@ -1100,12 +1100,10 @@ impl From<BaseItemDto> for Content {
         let name = item.name.expect("No name in BaseItemDto");
         let description = item.overview;
         let icon_url = Some(match item.type_.unwrap() {
-            BaseItemKind::Movie => format!(
-                "/Items/{id}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90",
-            ),
-            _ => format!(
-                "/Items/{id}/Images/Primary?maxHeight=300&maxWidth=300&quality=90",
-            ),
+            BaseItemKind::Movie => {
+                format!("/Items/{id}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90",)
+            }
+            _ => format!("/Items/{id}/Images/Primary?maxHeight=300&maxWidth=300&quality=90",),
         });
         Self {
             id,

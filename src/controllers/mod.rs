@@ -1,5 +1,5 @@
-pub mod middlewares;
 pub mod extractors;
+pub mod middlewares;
 
 pub mod auth;
 pub mod dashboard;

@@ -22,7 +22,8 @@ pub struct ViewEngineAuthExt {
 }
 
 impl ViewEngineAuthExt {
-    #[must_use] pub fn new(state: AppContext) -> Self {
+    #[must_use]
+    pub fn new(state: AppContext) -> Self {
         Self { state }
     }
 }

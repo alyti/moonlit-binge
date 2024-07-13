@@ -6,7 +6,6 @@ use moonlit_binge::{
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
 
-
 macro_rules! configure_insta {
     ($($expr:expr),*) => {
         let mut settings = insta::Settings::clone_current();

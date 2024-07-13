@@ -29,11 +29,7 @@ async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
         false,
     )
     .unwrap();
-    tokio::fs::write(
-        format!("config/.suffering-{name}.yaml"),
-        result,
-    )
-    .await?;
+    tokio::fs::write(format!("config/.suffering-{name}.yaml"), result).await?;
     Ok(name)
 }
 
@@ -45,7 +41,7 @@ async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
 /// }
 /// ```
 /// # Panics
-/// 
+///
 /// Panics if any containers fail to start
 /// Panics if app fails to boot
 /// Panics if env file can't be written to
@@ -63,26 +59,26 @@ where
         let redis = Redis.start().await.unwrap();
         (pg, redis)
     };
-    let jellyfin = Box::pin(ONCE_JELLYFIN
-        .get_or_init(async {
-            let container = JellyfinContainer::default()
-                .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
-                .start()
-                .await
-                .unwrap();
-            let host = container.get_host().await.unwrap();
-            let host_port = container
-                .get_host_port_ipv4(JELLYFIN_HTTP_PORT)
-                .await
-                .unwrap();
-            let url = format!("http://{host}:{host_port}");
-            let client = Jellyfin::new(&url, &None);
-            client
-                .complete_startup("root", Some("/media"))
-                .await
-                .unwrap();
-            container
-        })).await;
+    let jellyfin = Box::pin(ONCE_JELLYFIN.get_or_init(async {
+        let container = JellyfinContainer::default()
+            .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
+            .start()
+            .await
+            .unwrap();
+        let host = container.get_host().await.unwrap();
+        let host_port = container
+            .get_host_port_ipv4(JELLYFIN_HTTP_PORT)
+            .await
+            .unwrap();
+        let url = format!("http://{host}:{host_port}");
+        let client = Jellyfin::new(&url, &None);
+        client
+            .complete_startup("root", Some("/media"))
+            .await
+            .unwrap();
+        container
+    }))
+    .await;
 
     // tokio::task::block_in_place(move || handle.block_on(ONCE_JELLYFIN.get().unwrap().remove()));
 
@@ -123,9 +119,9 @@ where
 }
 
 /// Functionally identical to `loco_rs::testing::request` but it can run in parallel and comes with it's own test env.
-/// 
+///
 /// # Panics
-/// 
+///
 /// Panics if router is unavailable
 /// Panics if `TestServer` fails to start
 #[allow(clippy::future_not_send)]

@@ -3,7 +3,6 @@ use loco_rs::testing;
 use moonlit_binge::{app::App, models::users};
 use rstest::rstest;
 
-
 use super::prepare_data;
 
 // TODO: see how to dedup / extract this to app-local test utils

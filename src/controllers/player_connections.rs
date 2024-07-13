@@ -7,8 +7,8 @@ use axum_htmx::HxRequest;
 use loco_rs::prelude::*;
 use players::types::{Item, Library, MediaStream};
 
-use serde::{Deserialize, Serialize};
 use crate::controllers::extractors::auth::JWTWithUser;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     initializers::{
