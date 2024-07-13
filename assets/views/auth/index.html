@@ -1,10 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
-    {% if auth.logged_in %}
+    {# {% if auth.logged_in %}
         <p>
             {{ auth | json_encode }}
         </p>
-    {% endif %}
+    {% endif %} #}
     {% if action == "login" %}
         {% include "auth/login.html" %}
     {% elif action == "register" %}

@@ -30,21 +30,25 @@ async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
     )
     .unwrap();
     tokio::fs::write(
-        format!("config/.suffering-{}.yaml", name.to_string()),
+        format!("config/.suffering-{name}.yaml"),
         result,
     )
     .await?;
     Ok(name)
 }
 
-/// Incredibly cursed testcontainer setup that calls callback with a prepared BootResult or explodes, which is cool too
+/// Incredibly cursed testcontainer setup that calls callback with a prepared `BootResult` or explodes, which is cool too
 /// ```rust
 /// #[tokio::main]
 /// async fn main() {
 ///    // A
 /// }
 /// ```
-
+/// # Panics
+/// 
+/// Panics if any containers fail to start
+/// Panics if app fails to boot
+/// Panics if env file can't be written to
 pub async fn boot_with_testcontainers<H: Hooks, F, Fut>(callback: F)
 where
     F: FnOnce(BootResult) -> Fut,
@@ -56,10 +60,10 @@ where
         // This is a bit cursed, but for some reason testcontainers crate and the testcontainers_modules crate are not compatible with each other?
         use testcontainers_modules::testcontainers::runners::AsyncRunner;
         let pg = Postgres::default().start().await.unwrap();
-        let redis = Redis::default().start().await.unwrap();
+        let redis = Redis.start().await.unwrap();
         (pg, redis)
     };
-    let jellyfin = ONCE_JELLYFIN
+    let jellyfin = Box::pin(ONCE_JELLYFIN
         .get_or_init(async {
             let container = JellyfinContainer::default()
                 .with_media_mount(format!("{}/{}", env!("CARGO_MANIFEST_DIR"), "tests/media"))
@@ -78,8 +82,7 @@ where
                 .await
                 .unwrap();
             container
-        })
-        .await;
+        })).await;
 
     // tokio::task::block_in_place(move || handle.block_on(ONCE_JELLYFIN.get().unwrap().remove()));
 
@@ -106,7 +109,7 @@ where
     // Use our new throwaway env to do neferious things
     let boot = H::boot(
         boot::StartMode::ServerOnly,
-        &Environment::Any(format!(".suffering-{}", env.to_string())),
+        &Environment::Any(format!(".suffering-{env}")),
     )
     .await
     .unwrap();
@@ -120,6 +123,11 @@ where
 }
 
 /// Functionally identical to `loco_rs::testing::request` but it can run in parallel and comes with it's own test env.
+/// 
+/// # Panics
+/// 
+/// Panics if router is unavailable
+/// Panics if `TestServer` fails to start
 #[allow(clippy::future_not_send)]
 pub async fn request_with_testcontainers<H: Hooks, F, Fut>(callback: F)
 where

@@ -37,9 +37,9 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let ctx: AppContext = AppContext::from_ref(state);
 
-        let token = extract_token(get_jwt_from_config(&ctx).map_err(|e| resp(e))?, parts).map_err(|e| resp(e))?;
+        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp)?, parts).map_err(resp)?;
 
-        let jwt_secret = ctx.config.get_jwt_config().map_err(|e| resp(e))?;
+        let jwt_secret = ctx.config.get_jwt_config().map_err(resp)?;
 
         match auth::jwt::JWT::new(&jwt_secret.secret).validate(&token) {
             Ok(claims) => {
@@ -77,9 +77,9 @@ where
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let ctx: AppContext = AppContext::from_ref(state); // change to ctx
 
-        let token = extract_token(get_jwt_from_config(&ctx).map_err(|e| resp(e))?, parts).map_err(|e| resp(e))?;
+        let token = extract_token(get_jwt_from_config(&ctx).map_err(resp)?, parts).map_err(resp)?;
 
-        let jwt_secret = ctx.config.get_jwt_config().map_err(|e| resp(e))?;
+        let jwt_secret = ctx.config.get_jwt_config().map_err(resp)?;
 
         match auth::jwt::JWT::new(&jwt_secret.secret).validate(&token) {
             Ok(claims) => Ok(Self {

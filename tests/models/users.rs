@@ -5,7 +5,7 @@ use moonlit_binge::{
     models::users::{self, Model, RegisterParams},
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, IntoActiveModel};
-use serial_test::serial;
+
 
 macro_rules! configure_insta {
     ($($expr:expr),*) => {

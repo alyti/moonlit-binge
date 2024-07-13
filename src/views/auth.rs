@@ -24,22 +24,22 @@ impl LoginResponse {
     }
 }
 
-pub fn partial_login(v: &impl ViewRenderer) -> Result<Response> {
-    format::render().view(v, "auth/login.html", serde_json::json!({}))
+pub fn base_view<T: Serialize>(
+    v: &impl ViewRenderer,
+    partial: bool,
+    action: &str,
+    ctx: &T,
+) -> Result<Response> {
+    format::render().view(
+        v,
+        &format!("auth/{}.html", if partial { action } else { "index" }),
+        HtmxPartial { action, ctx },
+    )
 }
 
-pub fn partial_register(v: &impl ViewRenderer) -> Result<Response> {
-    format::render().view(v, "auth/register.html", serde_json::json!({}))
-}
-
-pub fn partial_forgot(v: &impl ViewRenderer) -> Result<Response> {
-    format::render().view(v, "auth/forgot.html", serde_json::json!({}))
-}
-
-pub fn partial_reset(v: &impl ViewRenderer) -> Result<Response> {
-    format::render().view(v, "auth/reset.html", serde_json::json!({}))
-}
-
-pub fn base_view(v: &impl ViewRenderer, action: &str) -> Result<Response> {
-    format::render().view(v, "auth/index.html", serde_json::json!({"action": action}))
+#[derive(serde::Serialize)]
+pub struct HtmxPartial<'a, T: Serialize> {
+    pub action: &'a str,
+    #[serde(flatten)]
+    pub ctx: &'a T,
 }

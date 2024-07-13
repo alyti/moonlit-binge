@@ -1,6 +1,5 @@
 use std::{
     convert::Infallible,
-    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -23,7 +22,7 @@ pub struct ViewEngineAuthExt {
 }
 
 impl ViewEngineAuthExt {
-    pub fn new(state: AppContext) -> Self {
+    #[must_use] pub fn new(state: AppContext) -> Self {
         Self { state }
     }
 }

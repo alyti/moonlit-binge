@@ -21,7 +21,7 @@ pub async fn render_home(
     State(ctx): State<AppContext>,
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
-    Extension(media_providers): Extension<Box<MediaProviders>>,
+    Extension(_media_providers): Extension<Box<MediaProviders>>,
     auth: JWTWithUser<users::Model>,
 ) -> Result<Response> {
     let connections = player_connections::Entity::find()

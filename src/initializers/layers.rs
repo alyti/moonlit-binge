@@ -34,11 +34,11 @@ impl Initializer for LayersInitializer {
                     .unwrap_or_default();
 
                 let headers = request.headers();
-                let ip: String = match SecureClientIp::from(&SETTINGS.get().unwrap().ip_source, &headers, &extensions) {
+                let ip: String = match SecureClientIp::from(&SETTINGS.get().unwrap().ip_source, headers, extensions) {
                     Ok(ip) => ip.0.to_string(),
                     Err(_) => {
                         tracing::error!("Could not get client ip using configured ip source, falling back to insecure ip source");
-                        match axum_client_ip::InsecureClientIp::from(&headers, &extensions) {
+                        match axum_client_ip::InsecureClientIp::from(headers, extensions) {
                             Ok(ip) => ip.0.to_string(),
                             Err(_) => "unknown".to_string(),
                         }

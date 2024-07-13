@@ -176,6 +176,7 @@
                 packages = with pkgs; [
                   cargo-watch
                   cargo-insta
+                  cargo-deny
                   systemfd
                   jq
                   dive

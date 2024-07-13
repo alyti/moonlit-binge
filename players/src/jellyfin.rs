@@ -180,7 +180,7 @@ impl Jellyfin {
                 .access_token
                 .expect("No access_token in AuthenticationResult"),
         };
-        return Ok(user);
+        Ok(user)
     }
 
     // Authorization: "MediaBrowser Client=\"Jellyfin Web\", Device=\"Firefox\", DeviceId=\"TW96aWxsYS81LjAgKFgxMTsgTGludXggeDg2XzY0OyBydjoxMjcuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xMjcuMHwxNzE5NzU2MjE4MDUy\", Version=\"10.9.7\", Token=\"a9229457f4304b45852813e4d5803d20\""
@@ -221,8 +221,8 @@ impl Jellyfin {
 
     pub async fn preferences(
         &self,
-        identity: &serde_json::Value,
-        new_preferences: Option<serde_json::Value>,
+        _identity: &serde_json::Value,
+        _new_preferences: Option<serde_json::Value>,
     ) -> Result<Option<serde_json::Value>, eyre::Error> {
         todo!()
     }
@@ -584,16 +584,16 @@ impl JellyfinUser {
             Some(lib) => {
                 let url = format!("{}/Users/{}/Items", self.client.base_url, self.id);
                 let query: &[(&str, &str)] = &[
-                    ("SortBy", "IsFolder,SortName,ProductionYear".into()),
-                    ("SortOrder", "Ascending".into()),
+                    ("SortBy", "IsFolder,SortName,ProductionYear"),
+                    ("SortOrder", "Ascending"),
                     // ("IncludeItemTypes", "Movie,Episode".into()),
                     // ("Recursive", "true".into()),
                     ("ParentId", &lib.id),
-                    ("Fields", "DateCreated,MediaSources,MediaStreams,BasicSyncInfo,Genres,Tags,Studios,SeriesStudio,People,Chapters,ChildCount,MediaSourceCount,Overview".into()),
-                    ("ImageTypeLimit", "1".into()),
-                    ("EnableImageTypes", "Primary,Backdrop".into()),
-                    ("StartIndex", "0".into()),
-                    ("IsMissing", "false".into())
+                    ("Fields", "DateCreated,MediaSources,MediaStreams,BasicSyncInfo,Genres,Tags,Studios,SeriesStudio,People,Chapters,ChildCount,MediaSourceCount,Overview"),
+                    ("ImageTypeLimit", "1"),
+                    ("EnableImageTypes", "Primary,Backdrop"),
+                    ("StartIndex", "0"),
+                    ("IsMissing", "false")
                 ];
                 let response: types::BaseItemDtoQueryResult = self
                     .client
@@ -622,9 +622,9 @@ impl JellyfinUser {
     pub async fn item(&self, id: &str) -> Result<Item, reqwest::Error> {
         let url = format!("{}/Users/{}/Items/{}", self.client.base_url, self.id, id);
         let query: &[(&str, &str)] = &[
-            ("Fields", "DateCreated,MediaSources,MediaStreams,BasicSyncInfo,Genres,Tags,Studios,SeriesStudio,People,Chapters,ChildCount,MediaSourceCount,Overview".into()),
-            ("ImageTypeLimit", "1".into()),
-            ("EnableImageTypes", "Primary,Backdrop".into()),
+            ("Fields", "DateCreated,MediaSources,MediaStreams,BasicSyncInfo,Genres,Tags,Studios,SeriesStudio,People,Chapters,ChildCount,MediaSourceCount,Overview"),
+            ("ImageTypeLimit", "1"),
+            ("EnableImageTypes", "Primary,Backdrop"),
         ];
         let response: types::BaseItemDto = self
             .client
@@ -1101,15 +1101,13 @@ impl From<BaseItemDto> for Content {
         let description = item.overview;
         let icon_url = Some(match item.type_.unwrap() {
             BaseItemKind::Movie => format!(
-                "/Items/{}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90",
-                id,
+                "/Items/{id}/Images/Backdrop?maxHeight=300&maxWidth=300&quality=90",
             ),
             _ => format!(
-                "/Items/{}/Images/Primary?maxHeight=300&maxWidth=300&quality=90",
-                id,
+                "/Items/{id}/Images/Primary?maxHeight=300&maxWidth=300&quality=90",
             ),
         });
-        Content {
+        Self {
             id,
             parent_id: item.parent_id.map(|id| id.to_string()),
             name,

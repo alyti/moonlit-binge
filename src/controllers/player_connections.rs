@@ -4,10 +4,9 @@
 use axum::{body::Bytes, debug_handler, Extension};
 use axum_extra::extract::{Form, Query};
 use axum_htmx::HxRequest;
-use futures_util::StreamExt;
 use loco_rs::prelude::*;
 use players::types::{Item, Library, MediaStream};
-use sea_orm::{sea_query::Order, QueryOrder};
+
 use serde::{Deserialize, Serialize};
 use crate::controllers::extractors::auth::JWTWithUser;
 
@@ -17,7 +16,7 @@ use crate::{
         view_engine::BetterTeraView,
     },
     models::_entities::{
-        player_connections::{ActiveModel, Column, Entity, Model},
+        player_connections::{ActiveModel, Entity, Model},
         users,
     },
     views,
@@ -44,7 +43,7 @@ async fn load_item(ctx: &AppContext, id: i32) -> Result<Model> {
 #[debug_handler]
 pub async fn new(
     ViewEngine(v): ViewEngine<BetterTeraView>,
-    State(ctx): State<AppContext>,
+    State(_ctx): State<AppContext>,
     Extension(media_providers): Extension<Box<MediaProviders>>,
     HxRequest(boosted): HxRequest,
 ) -> Result<Response> {
@@ -71,7 +70,7 @@ pub async fn setup(
         .as_ref()
         .map(|s| serde_json::from_str(s).unwrap());
 
-    views::player_connections::setup(&v, &provider, provider.setup(&ctx, setup).await?)
+    views::player_connections::setup(&v, provider, provider.setup(&ctx, setup).await?)
 }
 
 #[debug_handler]
@@ -188,8 +187,6 @@ pub struct TranscodeStartParams {
 
 pub async fn transcode_start(
     Path(connection_id): Path<i32>,
-    ViewEngine(v): ViewEngine<BetterTeraView>,
-    HxRequest(boosted): HxRequest,
     State(ctx): State<AppContext>,
     Form(data): Form<TranscodeStartParams>,
 ) -> Result<Response> {
@@ -197,7 +194,7 @@ pub async fn transcode_start(
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
     let mut work = vec![];
     for (i, content) in data.contents.iter().enumerate() {
-        let item = provider.item(&ctx, &content).await?;
+        let item = provider.item(&ctx, content).await?;
 
         match item {
             Item::Content(content) => {
@@ -239,39 +236,6 @@ pub async fn transcode_start(
     Ok(Response::new("k".into()))
 }
 
-#[debug_handler]
-pub async fn content_transcode(
-    Path((provider_id, content_id)): Path<(i32, String)>,
-    ViewEngine(v): ViewEngine<BetterTeraView>,
-    State(ctx): State<AppContext>,
-) -> Result<Response> {
-    let connection = load_item(&ctx, provider_id).await?;
-    let provider: ConnectedMediaProvider = connection.clone().try_into()?;
-
-    let item = provider.item(&ctx, &content_id).await?;
-    match item {
-        Item::Content(content) => {
-            DownloadWorker::perform_later(
-                &ctx,
-                DownloadWorkerArgs {
-                    user_id: connection.user_id,
-                    connection_id: connection.id,
-                    profile: None,
-                    content: content,
-                    preferred_mediastreams: vec![],
-                },
-            )
-            .await
-            .expect("fuck u");
-        }
-        Item::Library(_) => {
-            return Err(Error::BadRequest("Not a content item".to_string()));
-        }
-    }
-
-    Ok(Response::new("k".into()))
-}
-
 pub async fn stream(
     Path(path): Path<String>,
     State(ctx): State<AppContext>,
@@ -299,7 +263,6 @@ pub fn routes() -> Routes {
         .add("/:id", get(show))
         .add("/:id/:library", get(show_library))
         .add("/:id/transcode", get(transcode).post(transcode_start))
-        .add("/:id/:content/transcode", get(content_transcode))
         .add("/setup", post(setup))
         .add("/", post(add))
         .add("/stream/*path", get(stream))

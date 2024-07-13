@@ -77,7 +77,7 @@ impl Hooks for App {
     async fn before_run(ctx: &AppContext) -> Result<()> {
         match &ctx.environment {
             Environment::Any(a) if a.starts_with(".suffering") => {
-                tokio::fs::remove_file(format!("config/{}.yaml", a)).await?;
+                tokio::fs::remove_file(format!("config/{a}.yaml")).await?;
             }
             _ => {}
         }

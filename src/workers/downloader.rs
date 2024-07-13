@@ -1,5 +1,5 @@
 use std::{
-    path::{Path, PathBuf},
+    path::{PathBuf},
     str::FromStr,
 };
 
@@ -8,8 +8,6 @@ use futures_util::StreamExt;
 use loco_rs::prelude::*;
 use players::types::{Content, MediaStream, TranscodeJob};
 use serde::{Deserialize, Serialize};
-use sidekiq::redis_rs::{AsyncCommands, FromRedisValue};
-use tracing::error;
 
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{
@@ -18,7 +16,7 @@ use reqwest_retry::{
 };
 
 use crate::{
-    initializers::media_provider::{self, ConnectedMediaProvider},
+    initializers::media_provider::{ConnectedMediaProvider},
     models::_entities::player_connections::Model,
 };
 
@@ -80,7 +78,7 @@ impl worker::Worker<DownloadWorkerArgs> for DownloadWorker {
                     .unwrap();
 
                 let mut paths = Vec::new();
-                for (name, media) in playlist.media.iter_mut() {
+                for (name, media) in &mut playlist.media {
                     media.segments.iter_mut().for_each(|segment| {
                         let uri = segment.uri.clone();
                         segment.uri = format!(
@@ -94,13 +92,13 @@ impl worker::Worker<DownloadWorkerArgs> for DownloadWorker {
                                 .unwrap()
                                 .to_owned()
                         );
-                        paths.push((uri, segment.uri.clone()))
+                        paths.push((uri, segment.uri.clone()));
                     });
                     let mut v: Vec<u8> = Vec::new();
                     media.write_to(&mut v).unwrap();
                     self.ctx
                         .storage
-                        .upload(&base_path.join(format!("{}.m3u8", name)), &Bytes::from(v))
+                        .upload(&base_path.join(format!("{name}.m3u8")), &Bytes::from(v))
                         .await
                         .unwrap();
                 }

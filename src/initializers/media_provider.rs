@@ -17,7 +17,7 @@ pub static CELL: OnceCell<Box<MediaProviders>> = OnceCell::const_new();
 pub type MediaProviders = BTreeMap<String, MediaProvider>;
 pub type MediaProviderList = Vec<MediaProvider>;
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MediaProvider {
     pub id: String,
     pub name: String,
@@ -28,25 +28,23 @@ pub struct MediaProvider {
     pub exclude_library_ids: Vec<String>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Profile {
     pub name: String,
     pub description: String,
     pub playback_settings: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum MediaProviderType {
+    #[default]
     Jellyfin,
     // Add your own media server type here, make sure to implement it in players crate too.
 }
 
-impl Default for MediaProviderType {
-    fn default() -> Self {
-        MediaProviderType::Jellyfin
-    }
-}
+
 
 pub struct MediaProviderInitializer;
 #[async_trait]
@@ -77,14 +75,10 @@ impl Initializer for MediaProviderInitializer {
             let mut map = BTreeMap::new();
             for provider in media_providers {
                 let id = provider.id.clone();
-                match map.insert(id.clone(), provider) {
-                    Some(_) => {
-                        return Err(Error::Message(format!(
-                            "Duplicate media provider id: {}",
-                            id
-                        )));
-                    }
-                    None => {}
+                if map.insert(id.clone(), provider).is_some() {
+                    return Err(Error::Message(format!(
+                        "Duplicate media provider id: {id}"
+                    )));
                 }
             }
             Ok(Box::new(map))
@@ -113,13 +107,13 @@ impl MediaProvider {
         match self.type_field {
             MediaProviderType::Jellyfin => {
                 let jellyfin = players::jellyfin::Jellyfin::new(&self.url, &None);
-                jellyfin.setup(setup).await.map_err(|e| e.into())
+                jellyfin.setup(setup).await.map_err(std::convert::Into::into)
             }
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ConnectedMediaProvider {
     pub provider: MediaProvider,
     pub identity: serde_json::Value,
@@ -149,7 +143,7 @@ impl TryFrom<player_connections::Model> for ConnectedMediaProvider {
 
 impl ConnectedMediaProvider {
     // mostly used in setup before we have a real connection model
-    pub fn from_provider_and_connection(
+    #[must_use] pub fn from_provider_and_connection(
         provider: MediaProvider,
         identity: serde_json::Value,
     ) -> Self {
@@ -173,7 +167,7 @@ impl ConnectedMediaProvider {
                 jellyfin
                     .preferences(&self.identity, new_preferences)
                     .await
-                    .map_err(|e| e.into())
+                    .map_err(std::convert::Into::into)
             }
         }
     }
@@ -183,7 +177,7 @@ impl ConnectedMediaProvider {
             MediaProviderType::Jellyfin => {
                 let jellyfin =
                     players::jellyfin::Jellyfin::new(&self.provider.url, &self.preferences);
-                jellyfin.test(&self.identity).await.map_err(|e| e.into())
+                jellyfin.test(&self.identity).await.map_err(std::convert::Into::into)
             }
         }
     }
@@ -196,8 +190,8 @@ impl ConnectedMediaProvider {
                 let user = jellyfin
                     .user_from_identity(&self.identity)
                     .await
-                    .map_err(|e| Error::Anyhow(e.into()))?;
-                user.items(library).await.map_err(|e| eyre::eyre!(e).into())
+                    .map_err(Error::Anyhow)?;
+                user.items(library).await.map_err(|e| eyre::eyre!(e))
             }
         };
         match items {
@@ -226,7 +220,7 @@ impl ConnectedMediaProvider {
                 let user = jellyfin
                     .user_from_identity(&self.identity)
                     .await
-                    .map_err(|e| Error::Anyhow(e.into()))?;
+                    .map_err(Error::Anyhow)?;
                 user.item(id).await.map_err(|e| eyre::eyre!(e).into())
             }
         }
@@ -240,7 +234,7 @@ impl ConnectedMediaProvider {
         preferred_media_streams: &[MediaStream],
     ) -> Result<TranscodeJob> {
         let preferred_profile = profile
-            .map(|p| p.to_string())
+            .map(std::string::ToString::to_string)
             .or(self.preferred_profile.clone())
             .or_else(|| {
                 Some(
@@ -267,10 +261,10 @@ impl ConnectedMediaProvider {
                 let user = jellyfin
                     .user_from_identity(&self.identity)
                     .await
-                    .map_err(|e| Error::Anyhow(e.into()))?;
+                    .map_err(Error::Anyhow)?;
                 user.transcode(content, profile.clone(), preferred_media_streams)
                     .await
-                    .map_err(|e| Error::Anyhow(e.into()))
+                    .map_err(Error::Anyhow)
             }
         }
     }

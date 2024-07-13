@@ -1,9 +1,7 @@
 use std::{
     borrow::Cow,
     collections::HashMap,
-    io,
-    io::ErrorKind,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use testcontainers::{
@@ -24,7 +22,7 @@ pub struct Jellyfin {
 impl Default for Jellyfin {
     fn default() -> Self {
         let env_vars = [("PUID", "1000"), ("PGID", "1000"), ("TZ", "Etc/UTC")]
-            .iter()
+            .into_iter()
             .map(|(key, value)| (key.to_string(), value.to_string()))
             .collect();
 
@@ -68,6 +66,7 @@ impl Image for Jellyfin {
 }
 
 impl Jellyfin {
+    #[must_use]
     pub fn with_media_mount(self, media_mount_path: impl AsRef<Path>) -> Self {
         Self {
             media_mount: Some(Mount::bind_mount(

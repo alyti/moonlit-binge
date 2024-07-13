@@ -4,7 +4,7 @@ use axum::debug_handler;
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{common::settings::SETTINGS, models::_entities::users, views::user::CurrentResponse};
+use crate::{common::settings::SETTINGS};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct PlaylistCreateParams {
@@ -21,7 +21,7 @@ struct SingleContent {
 #[debug_handler]
 async fn splice(
     // auth: auth::JWTWithUser<users::Model>,
-    State(ctx): State<AppContext>,
+    State(_ctx): State<AppContext>,
     Json(params): Json<PlaylistCreateParams>,
 ) -> Result<impl IntoResponse> {
     // validate the playlists exist...
@@ -43,14 +43,14 @@ async fn splice(
     let mut spliced_master: Option<m3u8_rs::MasterPlaylist> = None;
     let mut spliced_media: Option<HashMap<String, m3u8_rs::MediaPlaylist>> = None;
 
-    for content in params.contents.into_iter() {
+    for content in params.contents {
         let single_content_dir = single_base_path
             .join(format!("{}", content.connection))
             .join(&content.content_id);
-        let mut playlist = tokio::fs::read(single_content_dir.join("main.m3u8")).await?;
+        let playlist = tokio::fs::read(single_content_dir.join("main.m3u8")).await?;
         let manifest = m3u8_rs::parse_master_playlist_res(&playlist).unwrap();
         spliced_master = match spliced_master {
-            Some(mut spliced_master) => {
+            Some(spliced_master) => {
                 if spliced_master.variants.len() != manifest.variants.len() {
                     return Err(Error::BadRequest("Media count mismatch".to_string()));
                 }
@@ -59,12 +59,12 @@ async fn splice(
             None => Some(manifest.clone()),
         };
 
-        for variant in manifest.variants.into_iter() {
+        for variant in manifest.variants {
             let playlist = tokio::fs::read(single_content_dir.join(&variant.uri)).await?;
             let mut media = m3u8_rs::parse_media_playlist_res(&playlist).unwrap();
             let name = variant.uri.strip_suffix(".m3u8").unwrap();
 
-            for segment in media.segments.iter_mut() {
+            for segment in &mut media.segments {
                 segment.uri = format!(
                     "../../single/{}/{}/{}",
                     content.connection, content.content_id, segment.uri
@@ -100,13 +100,12 @@ async fn splice(
         .unwrap();
     tokio::fs::write(playlist_base_path.join("main.m3u8"), v).await?;
 
-    for (name, media) in spliced_media
+    for (name, media) in &mut spliced_media
         .expect("Missing spliced media files")
-        .iter_mut()
     {
         let mut v: Vec<u8> = Vec::new();
         media.write_to(&mut v).unwrap();
-        tokio::fs::write(playlist_base_path.join(format!("{}.m3u8", name)), v).await?;
+        tokio::fs::write(playlist_base_path.join(format!("{name}.m3u8")), v).await?;
     }
     Ok(())
 }

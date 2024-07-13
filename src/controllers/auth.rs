@@ -35,6 +35,7 @@ pub struct ResetParams {
 async fn register(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     State(ctx): State<AppContext>,
+    HxRequest(boosted): HxRequest,
     jar: CookieJar,
     Json(params): Json<RegisterParams>,
 ) -> Result<impl IntoResponse> {
@@ -48,7 +49,14 @@ async fn register(
                 user_email = &params.email,
                 "could not register user",
             );
-            return Ok(views::auth::partial_register(&v)?.into_response());
+            match err {
+                ModelError::DbErr(DbErr::Custom(err)) => {
+                    return views::auth::base_view(&v, boosted, "register", &serde_json::json!({"errors": err}));
+                }
+                _ => {
+                    return views::auth::base_view(&v, boosted, "register", &serde_json::json!({"errors": "Unknown error, try again later."}));
+                }
+            }
         }
     };
 
@@ -159,13 +167,12 @@ async fn login(
         .generate_jwt(&jwt_secret.secret, &jwt_secret.expiration)
         .or_else(|_| unauthorized("unauthorized!"))?;
 
-    let mut cookie = Cookie::new("moonlit_binge_jwt", token.clone());
+    let mut cookie = Cookie::new("moonlit_binge_jwt", token);
     cookie.set_path("/");
 
     Ok((
         HxRedirect(Uri::from_static("/")),
         jar.add(cookie),
-        format::json(LoginResponse::new(&user, &token)),
     ))
 }
 
@@ -173,31 +180,22 @@ pub async fn render_auth_login(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
 ) -> Result<Response> {
-    if boosted {
-        views::auth::partial_login(&v)
-    } else {
-        views::auth::base_view(&v, "login")
-    }
+    views::auth::base_view(&v, boosted, "login", &serde_json::json!({}))
 }
+
 pub async fn render_auth_register(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
 ) -> Result<Response> {
-    if boosted {
-        views::auth::partial_register(&v)
-    } else {
-        views::auth::base_view(&v, "register")
-    }
+    views::auth::base_view(&v, boosted, "register", &serde_json::json!({}))
 }
 
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("auth")
-        .add("/register", post(register))
+        .add("/login", get(render_auth_login).post(login))
+        .add("/register", get(render_auth_register).post(register))
         .add("/verify", post(verify))
-        .add("/login", post(login))
         .add("/forgot", post(forgot))
         .add("/reset", post(reset))
-        .add("/login", get(render_auth_login))
-        .add("/register", get(render_auth_register))
 }

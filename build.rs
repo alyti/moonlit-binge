@@ -149,7 +149,7 @@ fn build_single<T: AsRef<Path>>(config_file: &str, extra_input: Option<T>, outpu
 }
 
 fn main() {
-    if let Ok(_) = std::env::var("NIX_ENFORCE_PURITY") {
+    if std::env::var("NIX_ENFORCE_PURITY").is_ok() {
         exit(0)
     }
     println!("cargo:rerun-if-changed=assets/views");

@@ -1,10 +1,8 @@
-use std::{collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::jellyfin::types::BaseItem;
-
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Library {
     pub id: String,
     pub parent_id: Option<String>,
@@ -15,6 +13,7 @@ pub struct Library {
 }
 
 impl Library {
+    #[must_use]
     pub fn from_path(id: &str) -> Self {
         Self {
             id: id.to_string(),
@@ -27,7 +26,7 @@ impl Library {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct Content {
     pub id: String,
     pub parent_id: Option<String>,
@@ -38,7 +37,7 @@ pub struct Content {
     pub kind: ContentKind,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum MediaStream {
     Video {
@@ -59,7 +58,7 @@ pub enum MediaStream {
     },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum LibraryKind {
     Collection,
@@ -69,7 +68,7 @@ pub enum LibraryKind {
     Other { name: Option<String> },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum ContentKind {
     Movie,
@@ -77,7 +76,7 @@ pub enum ContentKind {
     Other { name: Option<String> },
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(tag = "type")]
 pub enum Item {
     Library(Library),

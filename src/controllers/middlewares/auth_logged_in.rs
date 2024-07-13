@@ -8,7 +8,6 @@ use axum::{
     extract::{FromRequestParts, Request},
     response::Response,
 };
-use axum_htmx::HxRedirect;
 use futures_util::future::BoxFuture;
 use loco_rs::prelude::{auth::JWTWithUser, *};
 use tower::{Layer, Service};
@@ -21,7 +20,7 @@ pub struct AuthenticatedRouteLayer {
 }
 
 impl AuthenticatedRouteLayer {
-    pub fn new(state: AppContext) -> Self {
+    #[must_use] pub fn new(state: AppContext) -> Self {
         Self { state }
     }
 }
@@ -70,7 +69,7 @@ where
             let auth = JWTWithUser::<users::Model>::from_request_parts(&mut parts, &state).await;
 
             match auth {
-                Ok(auth) => {
+                Ok(_) => {
                     let req = Request::from_parts(parts, body);
                     inner.call(req).await
                 }

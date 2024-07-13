@@ -7,7 +7,7 @@ use crate::{
     models::_entities::player_connections,
 };
 
-/// Render a list view of player_connections.
+/// Render a list view of `player_connections`.
 ///
 /// # Errors
 ///
@@ -20,7 +20,7 @@ pub fn list(v: &impl ViewRenderer, items: &Vec<player_connections::Model>) -> Re
     )
 }
 
-/// Render a single player_connections view.
+/// Render a single `player_connections` view.
 ///
 /// # Errors
 ///
@@ -38,7 +38,7 @@ pub fn show(
     )
 }
 
-/// Render a player_connections create form.
+/// Render a `player_connections` create form.
 ///
 /// # Errors
 ///
@@ -51,7 +51,7 @@ pub fn create(v: &impl ViewRenderer, providers: Box<MediaProviders>) -> Result<R
     )
 }
 
-/// Render a player_connections create form.
+/// Render a `player_connections` create form.
 ///
 /// # Errors
 ///
@@ -70,7 +70,7 @@ pub fn setup(
     )
 }
 
-/// Render a player_connections edit form.
+/// Render a `player_connections` edit form.
 ///
 /// # Errors
 ///
