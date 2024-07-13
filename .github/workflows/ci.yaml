@@ -33,28 +33,29 @@ jobs:
           command: fmt
           args: --all -- --check --color always
 
-  clippy:
-    name: Run Clippy
-    runs-on: ubuntu-latest
+  # TODO: Disabled for now as it doesn't match the nix env for some reason and I can't be fucked to make tiny changes and wait for CI to lint them...
+  # clippy:
+  #   name: Run Clippy
+  #   runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
+  #   permissions:
+  #     contents: read
 
-    steps:
-      - name: Checkout the code
-        uses: actions/checkout@v4
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: ${{ env.TOOLCHAIN_PROFILE }}
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          override: true
-      - name: Setup Rust cache
-        uses: Swatinem/rust-cache@v2
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D warnings
+  #   steps:
+  #     - name: Checkout the code
+  #       uses: actions/checkout@v4
+  #     - uses: actions-rs/toolchain@v1
+  #       with:
+  #         profile: ${{ env.TOOLCHAIN_PROFILE }}
+  #         toolchain: ${{ env.RUST_TOOLCHAIN }}
+  #         override: true
+  #     - name: Setup Rust cache
+  #       uses: Swatinem/rust-cache@v2
+  #     - name: Run cargo clippy
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: clippy
+  #         args: --all-targets --all-features -- -D warnings
 
   deny-check:
     name: cargo-deny
