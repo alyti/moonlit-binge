@@ -20,7 +20,7 @@ impl AuthMailer {
     /// # Errors
     ///
     /// When email sending is failed
-    pub async fn send_welcome(ctx: &AppContext, user: &users::Model) -> Result<()> {
+    pub async fn send_welcome(ctx: &AppContext, host: &str, user: &users::Model) -> Result<()> {
         Self::mail_template(
             ctx,
             &welcome,
@@ -29,7 +29,7 @@ impl AuthMailer {
                 locals: json!({
                     "name": user.name,
                     "verifyToken": user.email_verification_token,
-                    "domain": ctx.config.server.full_url()
+                    "host": host
                 }),
                 ..Default::default()
             },
@@ -44,7 +44,7 @@ impl AuthMailer {
     /// # Errors
     ///
     /// When email sending is failed
-    pub async fn forgot_password(ctx: &AppContext, user: &users::Model) -> Result<()> {
+    pub async fn forgot_password(ctx: &AppContext, host: &str, user: &users::Model) -> Result<()> {
         Self::mail_template(
             ctx,
             &forgot,
@@ -53,7 +53,7 @@ impl AuthMailer {
                 locals: json!({
                   "name": user.name,
                   "resetToken": user.reset_token,
-                  "domain": ctx.config.server.full_url()
+                  "host": host
                 }),
                 ..Default::default()
             },

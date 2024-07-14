@@ -2,13 +2,21 @@ use loco_rs::prelude::*;
 use serde::Serialize;
 use serde_json::json;
 
+use crate::models::_entities::player_connections;
+
+use super::Format;
+
 /// Home view
-///
-/// # Errors
-///
-/// This function will return an error if render fails
-pub fn home(v: &impl ViewRenderer) -> Result<Response> {
-    format::render().view(v, "dashboard/home.html", json!({}))
+pub fn home<V: ViewRenderer>(
+    f: Format<V>,
+    connections: &[player_connections::Model],
+) -> Result<Response> {
+    f.render(
+        None,
+        "dashboard",
+        "home",
+        &json!({"connections": &connections}),
+    )
 }
 
 pub fn base_view<T: Serialize>(

@@ -209,6 +209,8 @@
                     enable = true;
                     port = 6380;
                   };
+
+                  mailpit.enable = true;
                 };
 
                 env = {

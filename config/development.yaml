@@ -91,20 +91,20 @@ workers:
 
 # Mailer Configuration.
 mailer:
-  stub: true
+  # stub: true
   # SMTP mailer configuration.
-  # smtp:
-  #   # Enable/Disable smtp mailer.
-  #   enable: false
-  #   # SMTP server host. e.x localhost, smtp.gmail.com
-  #   host: {{ get_env(name="MAILER_HOST", default="localhost") }}
-  #   # SMTP server port
-  #   port: 1025
-  #   # Use secure connection (SSL/TLS).
-  #   secure: false
-  #   # auth:
-  #   #   user:
-  #   #   password:
+  smtp:
+    # Enable/Disable smtp mailer.
+    enable: true
+    # SMTP server host. e.x localhost, smtp.gmail.com
+    host: {{ get_env(name="MAILER_HOST", default="localhost") }}
+    # SMTP server port
+    port: 1025
+    # Use secure connection (SSL/TLS).
+    secure: false
+    # auth:
+    #   user:
+    #   password:
 
 # Initializers Configuration
 # initializers:

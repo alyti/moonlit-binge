@@ -1,5 +1,7 @@
+{% import "macros.html" as macros %}
 {% extends "layout.html" %}
 {% block content %}
+    <div id="inner-partial">
     {# {% if auth.logged_in %}
         <p>
             {{ auth | json_encode }}
@@ -16,4 +18,5 @@
     {% else %}
         Unknown action??? (Shouldn't happen if you see this something is wrong)
     {% endif %}
+    </div>
 {% endblock content %}

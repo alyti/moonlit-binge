@@ -955,6 +955,11 @@ img, video {
   color: rgb(79 70 229 / var(--en-text-opacity));
 }
 
+.text-rose-600 {
+  --en-text-opacity: 1;
+  color: rgb(225 29 72 / var(--en-text-opacity));
+}
+
 .text-sky-500 {
   --en-text-opacity: 1;
   color: rgb(14 165 233 / var(--en-text-opacity));

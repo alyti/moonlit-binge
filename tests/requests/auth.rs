@@ -65,10 +65,12 @@ async fn can_login_with_verify(#[case] test_name: &str, #[case] password: &str) 
         _ = request.post("/auth/register").json(&register_payload).await;
 
         let user = users::Model::find_by_email(&ctx.db, email).await.unwrap();
-        let verify_payload = serde_json::json!({
-            "token": user.email_verification_token,
-        });
-        request.post("/auth/verify").json(&verify_payload).await;
+        request
+            .get(&format!(
+                "/auth/verify/{}",
+                user.email_verification_token.unwrap()
+            ))
+            .await;
 
         //verify user request
         let response = request
@@ -153,7 +155,7 @@ async fn can_reset_password() {
             "password": new_password,
         });
 
-        let reset_response = request.post("/auth/reset").json(&reset_payload).await;
+        let reset_response = request.post("/auth/reset/a").json(&reset_payload).await;
 
         let user = users::Model::find_by_email(&ctx.db, &user.email)
             .await

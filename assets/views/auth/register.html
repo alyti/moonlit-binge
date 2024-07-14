@@ -1,3 +1,5 @@
+{% import "macros.html" as macros %}
+
 <div id="auth" hx-boost="true" class="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
@@ -13,7 +15,7 @@
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:px-10">
-            <form class="space-y-6" hx-post="/auth/register" hx-ext="json-enc" hx-boost="true">
+            <form class="space-y-6" hx-post="/auth/register" hx-ext="json-enc" hx-boost="true" hx-target="#inner-partial" hx-swap="innerHTML">
                 <div>
                     <label for="email" class="block text-sm font-medium text-gray-700">
                         Email address
@@ -23,6 +25,7 @@
                             class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Enter your email address">
                     </div>
+                    {{ macros::errors( field = "email" ) }}
                 </div>
 
                 <div>
@@ -34,6 +37,7 @@
                             class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Enter your display name">
                     </div>
+                    {{ macros::errors( field = "name" ) }}
                 </div>
 
                 <div>
@@ -45,7 +49,16 @@
                             class="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                             placeholder="Enter your password">
                     </div>
+                    {{ macros::errors( field = "password" ) }}
                 </div>
+
+                {% if error %}
+                <div>
+                    <div class="mt-1">
+                        {{ error }}
+                    </div>
+                </div>
+                {% endif %}
 
                 <div>
                     <button type="submit"

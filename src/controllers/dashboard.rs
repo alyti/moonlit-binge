@@ -10,7 +10,7 @@ use crate::{
     views,
 };
 
-use super::extractors::auth::JWTWithUser;
+use super::extractors::{auth::JWTWithUser, Format};
 
 /// Renders the dashboard home page
 ///
@@ -19,8 +19,7 @@ use super::extractors::auth::JWTWithUser;
 /// This function will return an error if render fails
 pub async fn render_home(
     State(ctx): State<AppContext>,
-    ViewEngine(v): ViewEngine<BetterTeraView>,
-    HxRequest(boosted): HxRequest,
+    Format(f): Format<BetterTeraView>,
     Extension(_media_providers): Extension<Box<MediaProviders>>,
     auth: JWTWithUser<users::Model>,
 ) -> Result<Response> {
@@ -29,12 +28,7 @@ pub async fn render_home(
         .filter(player_connections::Column::UserId.eq(auth.user.id))
         .all(&ctx.db)
         .await?;
-    views::dashboard::base_view(
-        &v,
-        boosted,
-        "home",
-        &serde_json::json!({"connections": &connections}),
-    )
+    views::dashboard::home(f, &connections)
 }
 
 pub fn routes() -> Routes {

@@ -1,8 +1,13 @@
-use axum::{debug_handler, http::Uri};
+use std::collections::BTreeMap;
+
+use axum::{body::Body, debug_handler, http::Uri};
 use axum_htmx::{HxRedirect, HxRequest};
 use cookie::{Cookie, CookieJar};
 use loco_rs::prelude::*;
 use serde::{Deserialize, Serialize};
+use validation::ModelValidationMessage;
+
+use super::extractors::{Format, ProtoHost};
 
 use crate::{
     initializers::view_engine::BetterTeraView,
@@ -11,7 +16,10 @@ use crate::{
         _entities::users,
         users::{LoginParams, RegisterParams},
     },
-    views::{self, auth::LoginResponse},
+    views::{
+        self,
+        auth::{after_verify_redirect, LoginResponse},
+    },
 };
 #[derive(Debug, Deserialize, Serialize)]
 pub struct VerifyParams {
@@ -29,13 +37,17 @@ pub struct ResetParams {
     pub password: String,
 }
 
-/// Register function creates a new user with the given parameters and sends a
+/// register creates a new user with the given parameters and sends a
 /// welcome email to the user
+///
+/// # Errors
+///
+/// When the user already exists, validation fails, email can't be sent, or JWT can't be signed.
 #[debug_handler]
 async fn register(
-    ViewEngine(v): ViewEngine<BetterTeraView>,
     State(ctx): State<AppContext>,
-    HxRequest(boosted): HxRequest,
+    Format(f): Format<BetterTeraView>,
+    ProtoHost(host): ProtoHost,
     jar: CookieJar,
     Json(params): Json<RegisterParams>,
 ) -> Result<impl IntoResponse> {
@@ -51,17 +63,24 @@ async fn register(
             );
             match err {
                 ModelError::DbErr(DbErr::Custom(err)) => {
-                    return views::auth::base_view(
-                        &v,
-                        boosted,
-                        "register",
-                        &serde_json::json!({"errors": err}),
-                    );
+                    let maybe_validatior_errors: Result<
+                        BTreeMap<String, Vec<ModelValidationMessage>>,
+                        _,
+                    > = serde_json::from_str(&err);
+                    if let Ok(err) = maybe_validatior_errors {
+                        return f.render(
+                            None,
+                            "auth",
+                            "register",
+                            &serde_json::json!({"errors": err}),
+                        );
+                    }
+                    return f.render(None, "auth", "register", &serde_json::json!({"error": err}));
                 }
                 _ => {
-                    return views::auth::base_view(
-                        &v,
-                        boosted,
+                    return f.render(
+                        None,
+                        "auth",
                         "register",
                         &serde_json::json!({"errors": "Unknown error, try again later."}),
                     );
@@ -75,33 +94,30 @@ async fn register(
         .set_email_verification_sent(&ctx.db)
         .await?;
 
-    AuthMailer::send_welcome(&ctx, &user).await?;
+    AuthMailer::send_welcome(&ctx, &host, &user).await?;
 
     let jwt_secret = ctx.config.get_jwt_config()?;
 
-    let token = user
-        .generate_jwt(&jwt_secret.secret, &jwt_secret.expiration)
-        .or_else(|_| unauthorized("unauthorized!"))?;
+    let token = match user.generate_jwt(&jwt_secret.secret, &jwt_secret.expiration) {
+        Ok(token) => token,
+        Err(_) => {
+            return f.render(
+                None,
+                "auth",
+                "register",
+                &serde_json::json!({"error": "could not generate token"}),
+            );
+        }
+    };
 
-    let mut cookie = Cookie::new("moonlit_binge_jwt", token.clone());
-    cookie.set_path("/");
-
-    Ok((
-        HxRedirect(Uri::from_static("/")),
-        jar.add(cookie),
-        format::json(LoginResponse::new(&user, &token)),
-    )
-        .into_response())
+    LoginResponse::new(&user, &token).render(f)
 }
 
 /// Verify register user. if the user not verified his email, he can't login to
 /// the system.
 #[debug_handler]
-async fn verify(
-    State(ctx): State<AppContext>,
-    Json(params): Json<VerifyParams>,
-) -> Result<Response> {
-    let user = users::Model::find_by_verification_token(&ctx.db, &params.token).await?;
+async fn verify(State(ctx): State<AppContext>, Path(token): Path<String>) -> Result<Response> {
+    let user = users::Model::find_by_verification_token(&ctx.db, &token).await?;
 
     if user.email_verified_at.is_some() {
         tracing::info!(pid = user.pid.to_string(), "user already verified");
@@ -111,7 +127,7 @@ async fn verify(
         tracing::info!(pid = user.pid.to_string(), "user verified");
     }
 
-    format::json(())
+    after_verify_redirect()
 }
 
 /// In case the user forgot his password  this endpoints generate a forgot token
@@ -121,39 +137,93 @@ async fn verify(
 #[debug_handler]
 async fn forgot(
     State(ctx): State<AppContext>,
+    Format(f): Format<BetterTeraView>,
+    ProtoHost(host): ProtoHost,
     Json(params): Json<ForgotParams>,
 ) -> Result<Response> {
     let Ok(user) = users::Model::find_by_email(&ctx.db, &params.email).await else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
-        return format::json(());
+        return f.render(
+            None,
+            "auth",
+            "forgot",
+            &serde_json::json!({"processed": true}),
+        );
     };
 
-    let user = user
+    let user = match user
         .into_active_model()
         .set_forgot_password_sent(&ctx.db)
-        .await?;
+        .await
+    {
+        Ok(user) => user,
+        Err(e) => {
+            return f.render(
+                None,
+                "auth",
+                "forgot",
+                &serde_json::json!({"error": e.to_string()}),
+            );
+        }
+    };
 
-    AuthMailer::forgot_password(&ctx, &user).await?;
+    if let Err(e) = AuthMailer::forgot_password(&ctx, &host, &user).await {
+        return f.render(
+            None,
+            "auth",
+            "forgot",
+            &serde_json::json!({"error": e.to_string()}),
+        );
+    }
 
-    format::json(())
+    f.render(
+        None,
+        "auth",
+        "forgot",
+        &serde_json::json!({"processed": true}),
+    )
 }
 
 /// reset user password by the given parameters
 #[debug_handler]
-async fn reset(State(ctx): State<AppContext>, Json(params): Json<ResetParams>) -> Result<Response> {
+async fn reset(
+    State(ctx): State<AppContext>,
+    Format(f): Format<BetterTeraView>,
+    Path(token): Path<String>,
+    Json(params): Json<ResetParams>,
+) -> Result<Response> {
     let Ok(user) = users::Model::find_by_reset_token(&ctx.db, &params.token).await else {
         // we don't want to expose our users email. if the email is invalid we still
         // returning success to the caller
         tracing::info!("reset token not found");
 
-        return format::json(());
+        return f.render(
+            None,
+            "auth",
+            "reset",
+            &serde_json::json!({"processed": true, "token": token}),
+        );
     };
-    user.into_active_model()
+    if let Err(e) = user
+        .into_active_model()
         .reset_password(&ctx.db, &params.password)
-        .await?;
+        .await
+    {
+        return f.render(
+            None,
+            "auth",
+            "reset",
+            &serde_json::json!({"error": e.to_string(), "token": token}),
+        );
+    }
 
-    format::json(())
+    f.render(
+        None,
+        "auth",
+        "reset",
+        &serde_json::json!({"processed": true, "token": token}),
+    )
 }
 
 /// Creates a user login and returns a token
@@ -183,26 +253,31 @@ async fn login(
     Ok((HxRedirect(Uri::from_static("/")), jar.add(cookie)))
 }
 
-pub async fn render_auth_login(
-    ViewEngine(v): ViewEngine<BetterTeraView>,
-    HxRequest(boosted): HxRequest,
-) -> Result<Response> {
-    views::auth::base_view(&v, boosted, "login", &serde_json::json!({}))
+pub async fn login_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
+    f.render(None, "auth", "login", &serde_json::json!({}))
 }
 
-pub async fn render_auth_register(
-    ViewEngine(v): ViewEngine<BetterTeraView>,
-    HxRequest(boosted): HxRequest,
+pub async fn register_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
+    f.render(None, "auth", "register", &serde_json::json!({}))
+}
+
+pub async fn forgot_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
+    f.render(None, "auth", "forgot", &serde_json::json!({}))
+}
+
+pub async fn reset_form(
+    Format(f): Format<BetterTeraView>,
+    Path(token): Path<String>,
 ) -> Result<Response> {
-    views::auth::base_view(&v, boosted, "register", &serde_json::json!({}))
+    f.render(None, "auth", "reset", &serde_json::json!({"token": token}))
 }
 
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("auth")
-        .add("/login", get(render_auth_login).post(login))
-        .add("/register", get(render_auth_register).post(register))
-        .add("/verify", post(verify))
-        .add("/forgot", post(forgot))
-        .add("/reset", post(reset))
+        .add("/login", get(login_form).post(login))
+        .add("/register", get(register_form).post(register))
+        .add("/verify/:token", get(verify))
+        .add("/forgot", get(forgot_form).post(forgot))
+        .add("/reset/:token", get(reset_form).post(reset))
 }

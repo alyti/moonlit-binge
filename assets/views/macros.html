@@ -1,0 +1,17 @@
+{% macro errors(field) %}
+    {% if errors %}
+        {% if errors[field] %}
+            <div>
+                {% for error in errors[field] %}
+                <div class="mt-1 text-rose-600">
+                    {% if error.message %} 
+                        {{ error.message }}
+                    {% else %}
+                        <b>{{ error.code }}</b>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endmacro errors %}

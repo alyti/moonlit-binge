@@ -1,7 +1,10 @@
+use cookie::Cookie;
+use format::RenderBuilder;
 use serde::{Deserialize, Serialize};
 
 use crate::models::_entities::users;
 
+use super::Format;
 use loco_rs::prelude::*;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -24,22 +27,20 @@ impl LoginResponse {
     }
 }
 
-pub fn base_view<T: Serialize>(
-    v: &impl ViewRenderer,
-    partial: bool,
-    action: &str,
-    ctx: &T,
-) -> Result<Response> {
-    format::render().view(
-        v,
-        &format!("auth/{}.html", if partial { action } else { "index" }),
-        HtmxPartial { action, ctx },
-    )
+impl LoginResponse {
+    pub fn render<V: ViewRenderer>(&self, f: Format<V>) -> Result<Response> {
+        if let Format::Json = f {
+            return format::json(self);
+        }
+
+        let mut cookie = Cookie::new("moonlit_binge_jwt", &self.token);
+        cookie.set_path("/");
+        format::RenderBuilder::new()
+            .cookies(&[cookie])?
+            .redirect("/")
+    }
 }
 
-#[derive(serde::Serialize)]
-pub struct HtmxPartial<'a, T: Serialize> {
-    pub action: &'a str,
-    #[serde(flatten)]
-    pub ctx: &'a T,
+pub fn after_verify_redirect() -> Result<Response> {
+    format::redirect("/auth/login")
 }
