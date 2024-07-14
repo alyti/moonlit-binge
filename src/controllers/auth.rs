@@ -113,6 +113,10 @@ async fn register(
     LoginResponse::new(&user, &token).render(f)
 }
 
+pub async fn register_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
+    f.render(None, "auth", "register", &serde_json::json!({}))
+}
+
 /// Verify register user. if the user not verified his email, he can't login to
 /// the system.
 #[debug_handler]
@@ -185,6 +189,10 @@ async fn forgot(
     )
 }
 
+pub async fn forgot_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
+    f.render(None, "auth", "forgot", &serde_json::json!({}))
+}
+
 /// reset user password by the given parameters
 #[debug_handler]
 async fn reset(
@@ -218,12 +226,14 @@ async fn reset(
         );
     }
 
-    f.render(
-        None,
-        "auth",
-        "reset",
-        &serde_json::json!({"processed": true, "token": token}),
-    )
+    format::redirect("/auth/login")
+}
+
+pub async fn reset_form(
+    Format(f): Format<BetterTeraView>,
+    Path(token): Path<String>,
+) -> Result<Response> {
+    f.render(None, "auth", "reset", &serde_json::json!({"token": token}))
 }
 
 /// Creates a user login and returns a token
@@ -255,21 +265,6 @@ async fn login(
 
 pub async fn login_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
     f.render(None, "auth", "login", &serde_json::json!({}))
-}
-
-pub async fn register_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
-    f.render(None, "auth", "register", &serde_json::json!({}))
-}
-
-pub async fn forgot_form(Format(f): Format<BetterTeraView>) -> Result<Response> {
-    f.render(None, "auth", "forgot", &serde_json::json!({}))
-}
-
-pub async fn reset_form(
-    Format(f): Format<BetterTeraView>,
-    Path(token): Path<String>,
-) -> Result<Response> {
-    f.render(None, "auth", "reset", &serde_json::json!({"token": token}))
 }
 
 pub fn routes() -> Routes {
