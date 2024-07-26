@@ -2,7 +2,7 @@
 
 [package]
 name = "moonlit_binge"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
@@ -55,6 +55,11 @@ reqwest-middleware = "0.3.2"
 axum-client-ip = "0.6.0"
 tower-http = { version = "0.5.2", features = ["trace", "add-extension"] }
 percent-encoding = "2.3.1"
+axum-tracing-opentelemetry = "0.19.0"
+sqlx-postgres = "0.7.4"
+eta = "0.2.2"
+tracing-futures = { version = "0.2.5", features = ["tokio"] }
+flume = "0.11.0"
 
 [[bin]]
 name = "moonlit_binge-cli"

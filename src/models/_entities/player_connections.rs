@@ -17,10 +17,15 @@ pub struct Model {
     pub status: Option<Json>,
     pub preferences: Option<Json>,
     pub preferred_profile: Option<String>,
+    pub root_libraries: Option<Json>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::contents::Entity")]
+    Contents,
+    #[sea_orm(has_many = "super::libraries::Entity")]
+    Libraries,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UserId",
@@ -31,8 +36,29 @@ pub enum Relation {
     Users,
 }
 
+impl Related<super::contents::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Contents.def()
+    }
+}
+
+impl Related<super::libraries::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Libraries.def()
+    }
+}
+
 impl Related<super::users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Users.def()
+    }
+}
+
+impl Related<super::content_downloads::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::contents::Relation::ContentDownloads.def()
+    }
+    fn via() -> Option<RelationDef> {
+        Some(super::contents::Relation::PlayerConnections.def().rev())
     }
 }

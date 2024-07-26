@@ -4,20 +4,22 @@ use axum::{async_trait, Extension, Router as AxumRouter};
 use eyre::ContextCompat;
 use loco_rs::{
     app::{AppContext, Initializer},
+    worker::AppWorker,
     Error, Result,
 };
 use players::types::{Content, Item, Library, MediaStream, TranscodeJob};
 use serde::{Deserialize, Serialize};
+use sidekiq::Worker;
 use tokio::sync::OnceCell;
 
-use crate::models::player_connections;
+use crate::{models::player_connections, workers::downloader::DownloadWorkerArgs};
 
 pub static CELL: OnceCell<Box<MediaProviders>> = OnceCell::const_new();
 
 pub type MediaProviders = BTreeMap<String, MediaProvider>;
 pub type MediaProviderList = Vec<MediaProvider>;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MediaProvider {
     pub id: String,
     pub name: String,
@@ -26,6 +28,9 @@ pub struct MediaProvider {
     pub type_field: MediaProviderType,
     pub profiles: Vec<Profile>,
     pub exclude_library_ids: Vec<String>,
+    pub download_workers: Option<usize>,
+    #[serde(skip)]
+    pub worker_ingress: OnceCell<flume::Sender<crate::workers::downloader::DownloadWorkerArgs>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -72,6 +77,29 @@ impl Initializer for MediaProviderInitializer {
 
             let mut map = BTreeMap::new();
             for provider in media_providers {
+                provider
+                    .worker_ingress
+                    .get_or_init(|| async {
+                        let (sender, receiver) = flume::unbounded();
+                        for _ in 0..provider.download_workers.unwrap_or(1) {
+                            let receiver = receiver.clone();
+                            let ctx = ctx.clone();
+                            tokio::task::spawn(async move {
+                                while let Ok(args) = receiver.recv_async().await {
+                                    let worker =
+                                        crate::workers::downloader::DownloadWorker::build(&ctx);
+                                    match worker.perform(args).await {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            tracing::error!(error = ?e, "Download worker failed");
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        sender
+                    })
+                    .await;
                 let id = provider.id.clone();
                 if map.insert(id.clone(), provider).is_some() {
                     return Err(Error::Message(format!("Duplicate media provider id: {id}")));
@@ -110,9 +138,18 @@ impl MediaProvider {
             }
         }
     }
+
+    pub async fn queue_download(&self, args: DownloadWorkerArgs) -> Result<()> {
+        self.worker_ingress
+            .get()
+            .ok_or_else(|| Error::Message("Worker ingress not configured".to_string()))?
+            .send_async(args)
+            .await
+            .map_err(|e| loco_rs::Error::wrap(e))
+    }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectedMediaProvider {
     pub provider: MediaProvider,
     pub identity: serde_json::Value,
@@ -185,7 +222,7 @@ impl ConnectedMediaProvider {
         }
     }
 
-    pub async fn items(&self, _ctx: &AppContext, library: Option<Library>) -> Result<Vec<Item>> {
+    pub async fn items(&self, library: Option<Library>) -> Result<Vec<Item>> {
         let items = match self.provider.type_field {
             MediaProviderType::Jellyfin => {
                 let jellyfin =
@@ -215,7 +252,7 @@ impl ConnectedMediaProvider {
         }
     }
 
-    pub async fn item(&self, _ctx: &AppContext, id: &str) -> Result<Item> {
+    pub async fn item(&self, id: &str) -> Result<Item> {
         match self.provider.type_field {
             MediaProviderType::Jellyfin => {
                 let jellyfin =

@@ -24,6 +24,19 @@ impl Initializer for LayersInitializer {
                     .headers()
                     .get(axum::http::header::USER_AGENT)
                     .map_or("", |h| h.to_str().unwrap_or(""));
+                let uri = request.uri();
+                let path = uri.path();
+                if path.eq("/_health") || path.eq("/_ping") {
+                    // Skip trying to resolve IP, etc for health checks
+                    return tracing::error_span!(
+                        "http-request",
+                        "http.method" = tracing::field::display(request.method()),
+                        "http.uri" = tracing::field::display(uri),
+                        "http.version" = tracing::field::debug(request.version()),
+                        "http.user_agent" = tracing::field::display(user_agent),
+                        request_id = tracing::field::display(request_id),
+                    );
+                }
 
                 let extensions = request
                     .extensions();
@@ -48,7 +61,7 @@ impl Initializer for LayersInitializer {
                 tracing::error_span!(
                     "http-request",
                     "http.method" = tracing::field::display(request.method()),
-                    "http.uri" = tracing::field::display(request.uri()),
+                    "http.uri" = tracing::field::display(uri),
                     "http.version" = tracing::field::debug(request.version()),
                     "http.user_agent" = tracing::field::display(user_agent),
                     "http.origin_ip" = tracing::field::display(ip),

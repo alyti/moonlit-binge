@@ -129,6 +129,7 @@
               };
               ExposedPorts = {
                 "5150/tcp" = { };
+                "3000/tcp" = { };
               };
               User = "docker:docker";
             };
@@ -151,7 +152,7 @@
           watch =
             let
               script = pkgs.writeShellScriptBin "watch" ''
-                ${pkgs.systemfd}/bin/systemfd --no-pid -s http::0.0.0.0:3000 -- ${pkgs.cargo-watch}/bin/cargo-watch -w assets -w config -w migration -w src -w players -x "run -- start"
+                ${pkgs.systemfd}/bin/systemfd --no-pid -s http::0.0.0.0:3001 -- ${pkgs.cargo-watch}/bin/cargo-watch -w assets -w config -w migration -w src -w players -x "run -- start"
               '';
             in
             {
@@ -204,18 +205,27 @@
                       CREATE USER ${pkg_name} SUPERUSER PASSWORD '${pkg_name}';
                     '';
                   };
-
-                  redis = {
-                    enable = true;
-                    port = 6380;
-                  };
-
                   mailpit.enable = true;
+                  adminer.enable = true;
+                  nginx = {
+                    enable = true;
+                    httpConfig = ''
+                      server {
+                        listen 3002;
+                        location /stream {
+                          rewrite ^/stream/(.*) /$1  break;
+                          proxy_pass http://localhost:3000/$uri$is_args$args;
+                        }
+                        location / {
+                          proxy_pass http://localhost:3001;
+                        }
+                      }
+                    '';
+                  };
                 };
 
                 env = {
                   DATABASE_URL = "postgres://${pkg_name}:${pkg_name}@127.0.0.1:5433/${pkg_name}";
-                  REDIS_URL = "redis://127.0.0.1:6380";
                 };
               }
             ];

@@ -17,6 +17,6 @@ This is a rewrite of my previous project [jellyvr](https://github.com/alyti/jell
   * Moonlit Binge currently doesn't support heresphere API, there's no plan to add it in the near future, unless someone PRs it.
   * Moonlit Binge currently only supports jellyfin since that's the only media server I use, but PRs are welcome.
   * Moonlit Binge currently focuses on VRChat-like VR video players by providing an HLS (m3u8) stream links that can be used in VR players by simply pasting the link.
-* Jellyvr is using non-standard database (SurrealDB), this project uses Postgres and Redis.
+* Jellyvr is using non-standard database (SurrealDB), this project uses Postgres ~~and Redis~~.
 * Jellyvr doesn't persist any preferences, this project will have user accounts and preferences.
 * 

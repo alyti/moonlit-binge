@@ -84,7 +84,7 @@ jobs:
       - name: Pull testcontainers
         timeout-minutes: 10
         run: |
-          docker pull postgres:11-alpine
+          docker pull postgres:16-alpine
           docker pull redis:5.0
       - name: Run cargo test
         uses: actions-rs/cargo@v1

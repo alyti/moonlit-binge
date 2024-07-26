@@ -13,13 +13,13 @@ use players::{
     testcontainers::{Jellyfin as JellyfinContainer, JELLYFIN_HTTP_PORT},
 };
 use serde_json::json;
-use testcontainers::{runners::AsyncRunner, ContainerAsync};
+use testcontainers::{runners::AsyncRunner, ContainerAsync, ImageExt};
 use testcontainers_modules::{postgres::Postgres, redis::Redis};
 use uuid::Uuid;
 
 static ONCE_JELLYFIN: OnceCell<ContainerAsync<JellyfinContainer>> = OnceCell::new();
 
-/// use Tera to template `config/test.yaml.tpl`` with ctx and output it to `config/<uuid>.yaml`, return Uuid
+/// use Tera to template `config/test.yaml.tpl` with ctx and output it to `config/<uuid>.yaml`, return Uuid
 /// cleanup is up to caller
 async fn prepare_env_file(ctx: serde_json::Value) -> Result<Uuid> {
     let name = Uuid::new_v4();
@@ -55,7 +55,11 @@ where
     // Oh look are those containarized hard dependencies that we absolutely require to even run tests? Yup
     // Oh neat they are all in one place and we don't need to POLLUTE THE ENVIRONMENT... right?...
 
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default()
+        .with_tag("16-alpine")
+        .start()
+        .await
+        .unwrap();
     let redis = Redis.start().await.unwrap();
 
     let jellyfin = Box::pin(ONCE_JELLYFIN.get_or_init(async {

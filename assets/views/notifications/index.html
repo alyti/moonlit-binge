@@ -1,0 +1,40 @@
+{% for item in downloads %}
+<div class="col-span-1">
+    <div
+        class="grid grid-rows-9 gap-4 font-mono text-white text-sm text-center font-bold leading-6 bg-stripes-fuchsia rounded-lg">
+        <div class="rounded-lg p-2 bg-no-repeat bg-contain bg-top h-full grid row-span-5 w-full"
+            style="background-image: url('{{ item.connection.provider.url }}{{ item.content.icon_url }}')">
+        </div>
+        <div
+            class="p-4 rounded-lg bg-fuchsia-300 grid place-content-center row-span-2 dark:bg-fuchsia-800 dark:text-fuchsia-400 overflow-hidden h-full">
+            {{ item.content.name }}</div>
+        {% if item.data.type == "SegmentProgressReport" %}
+        <div class="rounded-lg grid place-content-stretch row-span-1 w-full">
+            <div class="flex w-full h-8 overflow-hidden bg-gray-300 rounded-full">
+                {% set percentage = item.data.done / item.data.total * 100 %}
+                {% set percentage = 'style=width:' ~ percentage ~ "%" %}
+                <div {{ percentage }} class="h-8 bg-purple-500"></div>
+            </div>
+        </div>
+        <div class="rounded-lg grid place-content-stretch row-span-1 w-full">
+            <div class="h-2 place-content-center">{{ item.data.eta }}</div>
+        </div>
+        {% elif item.data.type == "Finished" %}
+        {# {{ item.data | json_encode(pretty=true) | safe }} #}
+        <div class="p-4 rounded-lg bg-fuchsia-300 grid place-content-center row-span-1 dark:bg-fuchsia-800 dark:text-fuchsia-400 overflow-hidden h-4">
+            Finished
+        </div>
+        <div class="p-4 rounded-lg bg-fuchsia-300 grid place-content-center row-span-1 dark:bg-fuchsia-800 dark:text-fuchsia-400 overflow-hidden h-4">
+            Elapsed: {{ item.data.elapsed.secs }}s
+        </div>
+        {% elif item.data.type == "SegmentFailed" %}
+        <div class="p-4 rounded-lg bg-fuchsia-300 grid place-content-center row-span-1 dark:bg-fuchsia-800 dark:text-fuchsia-400 overflow-hidden h-4">
+            Download for #{{ item.data.segment_id }} failed
+        </div>
+        <div class="p-4 rounded-lg bg-fuchsia-300 grid place-content-center row-span-1 dark:bg-fuchsia-800 dark:text-fuchsia-400 overflow-hidden h-full">
+            {{ item.data.error }}s
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}

@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    hash::{Hash, Hasher},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -92,4 +95,30 @@ pub struct M3U8Playlist {
 #[derive(Debug, Clone, PartialEq)]
 pub enum TranscodeJob {
     M3U8(M3U8Playlist),
+}
+
+impl Content {
+    /// Generate a sort key for the content.
+    pub fn sort_key(&self) -> i64 {
+        let mut hasher = std::hash::DefaultHasher::new();
+
+        // self.parent_id.hash(&mut hasher);
+        match self.kind {
+            ContentKind::Episode { season, episode } => {
+                let season = season.unwrap_or(0);
+                return (season * 10000 + episode).try_into().unwrap();
+                //.hash(&mut hasher);
+            }
+            ContentKind::Movie | ContentKind::Other { .. } => {
+                self.parent_id.hash(&mut hasher);
+                self.name.hash(&mut hasher);
+            }
+        };
+
+        let finish = hasher.finish();
+        match finish.try_into() {
+            Ok(sort_key) => sort_key,
+            Err(_) => 0i64.wrapping_sub_unsigned(finish),
+        }
+    }
 }

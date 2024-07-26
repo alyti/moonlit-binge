@@ -1,10 +1,18 @@
 use std::{net::SocketAddr, path::Path};
 
 use async_trait::async_trait;
-use axum::Router;
+use axum::{
+    body::Body,
+    http::Request,
+    middleware::{from_fn, Next},
+    response::Response,
+    routing::get_service,
+    Router,
+};
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     boot::{create_app, BootResult, ServeParams, StartMode},
+    config::Config,
     controller::AppRoutes,
     db::{self, truncate_table},
     environment::Environment,
@@ -15,10 +23,11 @@ use loco_rs::{
 };
 use migration::Migrator;
 use sea_orm::DatabaseConnection;
+use tower_http::services::ServeDir;
 use tracing::warn;
 
 use crate::{
-    common::settings::{self, SETTINGS},
+    common::settings::{self, Settings, SETTINGS},
     controllers::{self, middlewares},
     initializers,
     models::_entities::users,
@@ -79,6 +88,12 @@ impl Hooks for App {
             Environment::Any(a) if a.starts_with(".suffering") => {
                 tokio::fs::remove_file(format!("config/{a}.yaml")).await?;
             }
+            Environment::Production | Environment::Development => {
+                let config = ctx.config.clone();
+                tokio::spawn(async move {
+                    serve_streams(config).await.unwrap();
+                });
+            }
             _ => {}
         }
         Ok(())
@@ -131,4 +146,57 @@ impl Hooks for App {
         db::seed::<users::ActiveModel>(db, &base.join("users.yaml").display().to_string()).await?;
         Ok(())
     }
+}
+
+pub async fn files_mw(request: Request<Body>, next: Next) -> Response {
+    let uri = request.uri().to_owned();
+    let path = uri.path();
+
+    let splited = path.split(".").collect::<Vec<_>>();
+
+    let content_type = if let Some(ext) = splited.last() {
+        let extension = ext.to_owned().to_lowercase();
+
+        match extension.as_str() {
+            "mp4" => "video/mp4",
+            "m3u8" => "application/vnd.apple.mpegurl",
+            "ts" => "video/mp2t",
+            _ => "application/octet-stream",
+        }
+    } else {
+        "unknown"
+    };
+
+    let mut response = next.run(request).await;
+    let headers_mut = response.headers_mut();
+    headers_mut.insert("Cache-Control", "public, max-age=31536000".parse().unwrap());
+    headers_mut.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
+    headers_mut.insert(
+        "Access-Control-Allow-Methods",
+        "GET, OPTIONS".parse().unwrap(),
+    );
+
+    if let Ok(content_type) = content_type.parse() {
+        headers_mut.insert("Content-Type", content_type);
+    }
+
+    response
+}
+
+async fn serve_streams(config: Config) -> Result<()> {
+    let settings: Settings = (&config).try_into().unwrap();
+    let listener = tokio::net::TcpListener::bind(if let Some(addr) = &settings.file_server_addr {
+        addr
+    } else {
+        "0.0.0.0:3000"
+    })
+    .await?;
+    let serve_dir = ServeDir::new(settings.transcoding_dir);
+    let router = Router::new()
+        .fallback_service(get_service(serve_dir))
+        .layer(from_fn(files_mw));
+
+    axum::serve(listener, router).await?;
+
+    Ok(())
 }

@@ -7,7 +7,10 @@ use axum_htmx::HxRequest;
 use loco_rs::prelude::*;
 use players::types::{Item, Library, MediaStream};
 
-use crate::controllers::extractors::auth::JWTWithUser;
+use crate::{
+    controllers::extractors::{auth::JWTWithUser, ProtoHost},
+    models::_entities::{contents, player_connections},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -101,8 +104,13 @@ pub async fn add(
     };
     let item = item.insert(&ctx.db).await?;
     let provider: ConnectedMediaProvider = item.clone().try_into()?;
-    let items = provider.items(&ctx, None).await?;
+    let items = provider.items(None).await?;
     views::player_connections::show(&v, &provider.provider, &item, items)
+}
+
+#[derive(Deserialize)]
+pub struct LibraryQuery {
+    force: Option<bool>,
 }
 
 #[debug_handler]
@@ -111,15 +119,23 @@ pub async fn show(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     State(ctx): State<AppContext>,
+    ProtoHost(host): ProtoHost,
+    auth: JWTWithUser<users::Model>,
+    Query(LibraryQuery { force }): Query<LibraryQuery>,
 ) -> Result<Response> {
-    let connection = load_item(&ctx, id).await?;
-    let provider: ConnectedMediaProvider = connection.clone().try_into()?;
-    let items = provider.items(&ctx, None).await?;
+    let (connection, provider, _, items) = player_connections::Model::library_and_items(
+        &ctx.db,
+        auth.user.id,
+        id,
+        None,
+        force.is_some(),
+    )
+    .await?;
     views::player_connections::base_view(
         &v,
         boosted,
         "show",
-        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items}),
+        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "items": items, "protohost": host}),
     )
 }
 
@@ -129,19 +145,23 @@ pub async fn show_library(
     ViewEngine(v): ViewEngine<BetterTeraView>,
     HxRequest(boosted): HxRequest,
     State(ctx): State<AppContext>,
+    ProtoHost(host): ProtoHost,
+    auth: JWTWithUser<users::Model>,
+    Query(LibraryQuery { force }): Query<LibraryQuery>,
 ) -> Result<Response> {
-    let connection = load_item(&ctx, id).await?;
-    let provider: ConnectedMediaProvider = connection.clone().try_into()?;
-
-    let parent = provider.item(&ctx, &library).await?;
-    let items = provider
-        .items(&ctx, Some(Library::from_path(&library)))
-        .await?;
+    let (connection, provider, parent, items) = player_connections::Model::library_and_items(
+        &ctx.db,
+        auth.user.id,
+        id,
+        Some(&library),
+        force.is_some(),
+    )
+    .await?;
     views::player_connections::base_view(
         &v,
         boosted,
         "show",
-        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "parent": parent, "items": items}),
+        &serde_json::json!({"provider": &provider.provider, "connection": &connection, "parent": parent, "items": items, "protohost": host}),
     )
 }
 
@@ -162,7 +182,7 @@ pub async fn transcode(
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
     let mut items = vec![];
     for content_id in data.content_ids {
-        let item = provider.item(&ctx, &content_id).await?;
+        let item = provider.item(&content_id).await?;
         items.push(item);
     }
 
@@ -194,7 +214,7 @@ pub async fn transcode_start(
     let provider: ConnectedMediaProvider = connection.clone().try_into()?;
     let mut work = vec![];
     for (i, content) in data.contents.iter().enumerate() {
-        let item = provider.item(&ctx, content).await?;
+        let item = provider.item(&content).await?;
 
         match item {
             Item::Content(content) => {
@@ -214,9 +234,14 @@ pub async fn transcode_start(
                         _ => {}
                     }
                 }
+                let (_, download) =
+                    contents::Model::start_download(&ctx.db, connection.id, &content.id)
+                        .await
+                        .unwrap();
                 work.push(DownloadWorkerArgs {
                     user_id: connection.user_id,
                     connection_id: connection.id,
+                    content_download_id: download.id,
                     profile: data.profile.clone(),
                     content: content.clone(),
                     preferred_mediastreams: streams,
@@ -229,8 +254,7 @@ pub async fn transcode_start(
     }
 
     for work in work {
-        // tracing::error!("{:?} {:?}", work.content.name, work.preferred_mediastreams);
-        DownloadWorker::perform_later(&ctx, work).await.unwrap();
+        provider.provider.queue_download(work).await?;
     }
 
     Ok(Response::new("k".into()))
