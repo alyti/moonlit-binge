@@ -669,7 +669,17 @@ impl JellyfinUser {
         );
         let pretty = serde_json::to_string_pretty(&profile)
             .map_err(|e| eyre::eyre!("Failed to serialize profile: {}", e))?;
-        let query = PlaybackQuery::new(&self.id, audio_index.copied(), subtitle_index.copied());
+        let mut buffer = Uuid::encode_buffer();
+        let media_source_id_from_uuid = Uuid::parse_str(&content.id)
+            .unwrap()
+            .simple()
+            .encode_lower(&mut buffer);
+        let query = PlaybackQuery::new(
+            &self.id,
+            media_source_id_from_uuid,
+            audio_index.copied(),
+            subtitle_index.copied(),
+        );
         tracing::info!(
             "Transcoding with profile: {} and query: {:?}",
             pretty,
@@ -772,7 +782,7 @@ struct PlaybackQuery {
 }
 
 impl PlaybackQuery {
-    fn new(user: &str, audio: Option<i32>, subtitle: Option<i32>) -> Self {
+    fn new(user: &str, id: &str, audio: Option<i32>, subtitle: Option<i32>) -> Self {
         Self {
             user_id: user.to_string(),
             audio_stream_index: audio,
@@ -781,7 +791,7 @@ impl PlaybackQuery {
             is_playback: Some(true),
             auto_open_live_stream: Some(true),
             max_streaming_bitrate: Some(140_000_000),
-            media_source_id: None,
+            media_source_id: Some(id.to_string()),
         }
     }
 }
